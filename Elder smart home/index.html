@@ -201,7 +201,18 @@
 
         /* Status Badge */
         .status-badge {
-            display: none !important;
+            padding: 8px 16px;
+            border-radius: 9999px;
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--outline-variant);
+        }
+        body.light-theme .status-badge {
+            background: rgba(48, 43, 39, 0.04);
         }
 
         .status-dot {
@@ -1263,7 +1274,7 @@
                 <span>제작자: park</span>
             </div>
             <div class="header-right">
-                <div id="connection-status" class="status-badge status-disconnected" style="display: none;">
+                <div id="connection-status" class="status-badge status-disconnected">
                     <span class="status-dot"></span>
                     <span id="status-text">연결 대기</span>
                 </div>
