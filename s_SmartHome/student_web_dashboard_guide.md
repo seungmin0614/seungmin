@@ -59,37 +59,54 @@ graph TD
 
 ---
 
-## 3단계: 🎨 Stitch(스티치)에서 고급 디자인 요소 디자인 및 적용하기
+## 3단계: 🎨 Stitch(스티치)에서 고급 디자인 요소 디자인 및 적용하기 (가장 쉬운 꿀팁!)
 
-웹 대시보드의 기능을 다 갖추었다면, 이제 사용자가 보기에 감탄이 나오는 세련된 모습(네오모피즘, 글래스모피즘 등)으로 디자인을 완성해 봅니다.
+Stitch 도구에서 가져온 네오모피즘 그림자나 반투명 글래스모피즘 코드를 HTML과 일일이 결합하여 수작업으로 수정하려면 클래스를 맞추느라 머리가 아플 수 있습니다. **이 과정을 AI 파트너인 Antigravity에게 한 번에 해결하도록 요청하는 것이 가장 간단합니다.**
 
-1. **Stitch(스티치) 실행 및 템플릿 선택**:
-   - Stitch 디자인 도구를 사용하여 대시보드에 어울리는 현대적이고 반응형 레이아웃을 생성합니다. (네오모피즘 버튼, 슬라이더, 센서 디스플레이 카드 등)
-2. **이중 광원 그림자(Neumorphism CSS) 복사**:
-   - 스티치에서 제공하는 네오모피즘 스타일의 그림자 속성을 확인합니다.
-   ```css
-   /* 평상시 튀어나온 입체적인 카드/버튼 스타일 */
-   .card-raised {
-     background: #f1f5f9;
-     border-radius: 20px;
-     box-shadow: 6px 6px 12px #cbd5e1, -6px -6px 12px #ffffff;
-     transition: all 0.2s ease;
-   }
-   
-   /* 마우스를 올리거나 터치할 때 살짝 눌리는 애니메이션 효과 */
-   .card-raised:hover {
-     transform: translateY(-2px);
-     box-shadow: 8px 8px 16px #cbd5e1, -8px -8px 16px #ffffff;
-   }
+### 🔍 Stitch CSS 코드는 어떻게 가져오나요?
+Stitch에서 디자인 스타일(CSS) 코드를 가져오는 방법은 대표적으로 다음 **두 가지**가 있습니다.
 
-   /* 눌린 버튼(Sunken) 스타일 */
-   .btn-pressed {
-     box-shadow: inset 4px 4px 8px #cbd5e1, inset -4px -4px 8px #ffffff;
-   }
-   ```
-3. **HTML/CSS 합치기**:
-   - Stitch에서 디자인한 버튼, 배경 스타일, 네비게이션 탭 바 등의 CSS 클래스를 복사하여 여러분의 `index.html` 파일의 `<style>` 태그 내부에 붙여넣습니다.
-   - HTML 구조도 스티치 레이아웃에 맞게 수정하여 심미성 높은 모바일 앱 형태(`max-width: 480px`)로 완성합니다.
+* **방법 A (가장 빠름): 이미 제공된 디자인 문서(`DESIGN.md`) 확인하기**
+  * 프로젝트 폴더 안에 AI 비서가 Stitch 디자인 서버의 스펙을 파싱하여 생성해 둔 **`DESIGN.md`** 파일이 들어있습니다.
+  * `DESIGN.md` 파일을 열면 사용하기 좋게 미리 정의되어 있는 컬러 변수(`--background`, `--primary`) 및 입체 그림자 스타일(`.card-raised`, `.btn-pressed`) 코드가 정리되어 있으므로 이를 그대로 긁어오면 됩니다.
+* **방법 B: Stitch 웹 에디터에서 직접 가져오기**
+  * 웹 브라우저에서 본인의 Stitch 디자인 프로젝트 화면에 접속합니다.
+  * 화면 중앙에 배치된 카드나 버튼 등 꾸미고 싶은 UI 요소를 마우스로 클릭하여 선택합니다.
+  * 화면 오른쪽 패널의 **`[CSS Inspector]`** 또는 **`[Styles]`** 탭을 클릭하면 자동으로 빌드된 CSS 속성(예: `box-shadow`, `backdrop-filter`, `border-radius` 등)이 표출됩니다. 해당 영역을 드래그하여 복사합니다.
+
+---
+
+### 💡 [가장 간단한 수행 방법] AI 비서에게 합치기 요청하기
+1. 위 방법(A 또는 B)을 통해 원하는 디자인 스타일 코드(CSS)를 복사합니다.
+2. 복사한 디자인 스타일과 함께, 본인의 `index.html` 파일을 Antigravity 채팅창에 올린 후 다음과 같이 간편하게 요청합니다.
+
+> **💬 Antigravity 요청 프롬프트 예시:**
+> *"여기 내 `index.html` 파일과 Stitch에서 가져온 디자인 CSS 속성이 있어. 이 그림자 효과와 스타일(.card-raised, .btn-pressed 등)을 내 index.html 내부의 카드와 버튼들에 어울리게 완전히 합쳐서, 세련된 반투명(또는 입체적인) 디자인으로 index.html을 전체 업그레이드해서 다시 작성해줘!"*
+> ```css
+> .card-raised {
+>   background: #f1f5f9;
+>   border-radius: 20px;
+>   box-shadow: 6px 6px 12px #cbd5e1, -6px -6px 12px #ffffff;
+>   transition: all 0.2s ease;
+> }
+> .btn-pressed {
+>   box-shadow: inset 4px 4px 8px #cbd5e1, inset -4px -4px 8px #ffffff;
+> }
+> ```
+> *(여기에 스티치에서 복사해 온 실제 CSS 속성을 붙여넣습니다.)*
+
+3. Antigravity가 CSS 클래스를 HTML 요소들의 `class="..."`에 자동으로 정렬 매핑하고, 전체 탭과 반응형 Bento Grid 레이아웃까지 완벽한 아크릴 글래스 느낌으로 개편하여 돌려줍니다. 코드가 완성되면 다운로드하여 기존 `index.html` 파일을 덮어쓰기만 하면 끝입니다!
+
+> [!TIP]
+> ### 🎨 도저히 내가 원하는 세련된 느낌의 디자인이 나오지 않을 때의 특급 비책!
+> 네오모피즘이나 글래스모피즘 같은 트렌디한 디자인은 단순히 CSS 조각(그림자 등) 몇 개만 가져온다고 완성되지 않습니다. 카드의 흐림도(blur), 테두리의 얇은 반사선 투명도(border opacity), 배경 그라데이션과의 명도 조화, 숨쉬는 여백(padding/margin)의 균형 등 **미세한 픽셀 단위 디테일**이 어긋나면 자칫 어설프거나 유치해 보이기 쉽기 때문입니다.
+>
+> 이럴 때는 **"본인이 이상적으로 생각하는 멋진 디자인의 스크린샷 이미지(예: 핀터레스트, 드리블 등에서 캡처한 디자인 레퍼런스 이미지)"**를 준비하여 Antigravity에게 본인의 `index.html` 파일과 함께 올리고 다음과 같이 요청해 보십시오.
+>
+> * **프롬프트 예시:**
+>   *"내가 개발 중인 `index.html`과 내가 원하는 완성형 디자인의 레퍼런스 이미지를 함께 보낼게. 이 이미지에서 보여주는 프리미엄 반투명 아크릴 느낌, 배경의 세련된 광원 그라데이션, 얇고 감각적인 카드 테두리 선, 폰트 두께 및 여백의 균형을 내 웹 대시보드에 100% 똑같이 이식해서 디자인 퀄리티를 최상으로 리팩토링해서 코드를 다시 짜줘!"*
+>
+> AI는 시각적인 디자인 이미지를 분석하여 이를 완벽한 CSS 스타일 코드로 변환하는 능력이 탁월하므로, 직접 손으로 삽질하며 디자인 코드를 맞추는 것보다 훨씬 세련되고 프리미엄한 명작 대시보드를 손쉽게 획득할 수 있습니다.
 
 ---
 
@@ -140,7 +157,7 @@ graph TD
    
    # 5. 내 로컬 저장소와 방금 만든 원격 GitHub 저장소 연결
    # (아래 주소의 [GitHub-계정명] 부분을 실제 본인 아이디로 변경하세요)
-   git remote add origin https://github.com/[GitHub-계정명]/my-smart-home.git
+   git remote add origin https://github.com/seungmin0614/seungmin.git
    
    # 6. 원격 저장소의 main 브랜치로 코드 업로드
    git push -u origin main

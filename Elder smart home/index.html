@@ -1,0 +1,2501 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>고령자 스마트홈 및 복약 관리 시스템</title>
+    <meta name="description" content="BLE NUS 통신을 이용한 고령자 스마트 복약/스마트홈 반응형 대시보드 - Premium Room Glassmorphism">
+    
+    <!-- Google Fonts: Geist for ultra-clean layouts & JetBrains Mono for data metrics -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        :root {
+            /* Premium Warm Glassmorphism Color Palette with Deep Shadow Values */
+            --background: #141210;
+            --surface: rgba(45, 40, 36, 0.58); /* Slightly brighter and warmer acrylic for high legibility */
+            --surface-container-low: rgba(255, 255, 255, 0.02);
+            --surface-container-high: rgba(255, 255, 255, 0.1);
+            
+            --text-primary: #ffffff; /* Crisp white */
+            --text-secondary: rgba(255, 255, 255, 0.7); /* Brighter secondary for visibility */
+            --outline: rgba(255, 255, 255, 0.16); /* Clearer white boundary */
+            --outline-variant: rgba(255, 255, 255, 0.08);
+            
+            --primary: #ffffff; /* Flat solid white for selected state */
+            --primary-light: rgba(255, 255, 255, 0.12);
+            --accent-warm: #ebdccb; /* Warm mocha sand */
+            
+            --success: #a3e635; /* Lime green */
+            --error: #f87171;
+            --warning: #fbbf24;
+
+            --gutter: 20px; /* Reduced for neat compact grid spacing */
+            --glass-blur: blur(35px) saturate(130%);
+            --overlay-gradient: linear-gradient(rgba(20, 18, 16, 0.5), rgba(20, 18, 16, 0.55));
+
+            /* Soft Dual-Light Neumorphic Shadow spec for Dark Mode */
+            --card-shadow: 12px 12px 28px rgba(0, 0, 0, 0.65), -12px -12px 28px rgba(255, 255, 255, 0.06), inset 1px 1px 0 rgba(255, 255, 255, 0.12);
+            --card-shadow-hover: 16px 16px 36px rgba(0, 0, 0, 0.75), -16px -16px 36px rgba(255, 255, 255, 0.08), inset 1px 1px 0 rgba(255, 255, 255, 0.2);
+            --telemetry-shadow: 8px 8px 20px rgba(0, 0, 0, 0.55), -8px -8px 20px rgba(255, 255, 255, 0.05), inset 1px 1px 0 rgba(255, 255, 255, 0.12);
+        }
+
+        /* Light Theme Variable Override - Cozy warm sand & silver ash tone */
+        body.light-theme {
+            --background: #ece9e4; /* Soft warm mocha-sand instead of pure white */
+            --surface: rgba(245, 243, 239, 0.65); /* Milked sand translucent glass */
+            --surface-container-low: rgba(0, 0, 0, 0.01);
+            --surface-container-high: rgba(0, 0, 0, 0.03);
+            
+            --text-primary: #302b27; /* Soft dark cocoa for low eye-strain contrast */
+            --text-secondary: #5e5751; /* Muted cocoa-gray helper text */
+            --outline: rgba(48, 43, 39, 0.12); /* Cozy line contour */
+            --outline-variant: rgba(48, 43, 39, 0.05);
+            
+            --primary: #38322e; /* Dark cocoa capsule active button */
+            --primary-light: rgba(56, 50, 46, 0.06);
+            --accent-warm: #8c7d70; /* Cozy warm sand gold */
+            
+            --overlay-gradient: linear-gradient(rgba(235, 232, 227, 0.65), rgba(235, 232, 227, 0.72));
+
+            /* Eye-Friendly Warm Beige Neumorphic Shadows (Shadow: cocoa-brown, Highlight: pure white) */
+            --card-shadow: 10px 10px 24px rgba(48, 43, 39, 0.12), -10px -10px 24px rgba(255, 255, 255, 0.9), inset 1px 1px 0 rgba(255, 255, 255, 0.5);
+            --card-shadow-hover: 14px 14px 30px rgba(48, 43, 39, 0.16), -14px -14px 30px rgba(255, 255, 255, 0.95), inset 1px 1px 0 rgba(255, 255, 255, 0.7);
+            --telemetry-shadow: 6px 6px 16px rgba(48, 43, 39, 0.08), -6px -6px 16px rgba(255, 255, 255, 0.9), inset 1px 1px 0 rgba(255, 255, 255, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Geist', sans-serif;
+            background-color: var(--background);
+            /* Dynamic background based on overlay-gradient variable */
+            background-image: 
+                var(--overlay-gradient), 
+                url('smarthome_bg.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: var(--gutter) 0;
+            transition: background-color 0.4s ease, color 0.4s ease;
+        }
+
+        /* Fully Responsive Wrapper */
+        #app-container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--gutter);
+            display: flex;
+            flex-direction: column;
+            gap: var(--gutter);
+        }
+
+        /* Header Style (Semi-translucent Acrylic) */
+        header {
+            width: 100%;
+            background: rgba(45, 40, 36, 0.65);
+            backdrop-filter: var(--glass-blur);
+            border-radius: 28px;
+            padding: 22px var(--gutter);
+            border: 1px solid var(--outline);
+            box-shadow: var(--card-shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        body.light-theme header {
+            background: rgba(245, 243, 239, 0.75);
+            box-shadow: var(--card-shadow);
+        }
+
+        .header-left h1 {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: var(--text-primary);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+
+        body.light-theme .header-left h1 {
+            text-shadow: none;
+        }
+
+        .header-left span {
+            font-size: 11px;
+            color: var(--accent-warm);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Settings Gear Icon Button (Acrylic Glass Circle) */
+        .btn-settings {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--outline);
+            cursor: pointer;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            border-radius: 50%;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .btn-settings:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+        body.light-theme .btn-settings {
+            background: rgba(48, 43, 39, 0.04);
+            color: var(--text-primary);
+        }
+        body.light-theme .btn-settings:hover {
+            background: rgba(48, 43, 39, 0.08);
+            border-color: rgba(48, 43, 39, 0.3);
+        }
+
+        /* Connection Drop Button */
+        .btn-disconnect {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--outline);
+            cursor: pointer;
+            color: var(--text-secondary);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            border-radius: 50%;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .btn-disconnect:hover {
+            background: rgba(248, 113, 113, 0.2);
+            border-color: var(--error);
+            color: var(--error);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(248, 113, 113, 0.15);
+        }
+
+        /* Status Badge */
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 9999px;
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--outline-variant);
+        }
+        body.light-theme .status-badge {
+            background: rgba(48, 43, 39, 0.04);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-disconnected {
+            color: var(--error);
+        }
+        .status-disconnected .status-dot { background-color: var(--error); box-shadow: 0 0 8px var(--error); }
+
+        .status-connecting {
+            color: var(--warning);
+            animation: pulse-light 1.5s infinite alternate;
+        }
+        .status-connecting .status-dot { background-color: var(--warning); box-shadow: 0 0 8px var(--warning); }
+
+        .status-connected {
+            color: var(--success);
+        }
+        .status-connected .status-dot { background-color: var(--success); box-shadow: 0 0 8px var(--success); }
+
+        /* Connect BLE Overlay */
+        #connect-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(20, 18, 16, 0.6);
+            backdrop-filter: blur(45px);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: var(--gutter);
+            transition: opacity 0.4s ease, visibility 0.4s;
+        }
+        body.light-theme #connect-overlay {
+            background: rgba(235, 232, 227, 0.6);
+        }
+
+        .overlay-card {
+            width: 100%;
+            max-width: 440px;
+            background: rgba(45, 40, 36, 0.65);
+            border-radius: 32px;
+            padding: 44px 28px;
+            text-align: center;
+            border: 1px solid var(--outline);
+            box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: background 0.4s ease;
+        }
+        body.light-theme .overlay-card {
+            background: rgba(245, 243, 239, 0.92);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+            border-color: var(--outline);
+        }
+
+        .bluetooth-icon-btn {
+            width: 84px;
+            height: 84px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+        body.light-theme .bluetooth-icon-btn {
+            background: rgba(48, 43, 39, 0.04);
+            border-color: rgba(48, 43, 39, 0.1);
+        }
+
+        .bluetooth-icon-btn svg {
+            width: 36px;
+            height: 36px;
+            fill: var(--text-primary);
+        }
+
+        .bluetooth-icon-btn::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            animation: pulse-ring 2.5s infinite;
+            pointer-events: none;
+        }
+        body.light-theme .bluetooth-icon-btn::after {
+            border-color: rgba(48, 43, 39, 0.2);
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(1); opacity: 0.6; }
+            100% { transform: scale(1.4); opacity: 0; }
+        }
+
+        .bluetooth-icon-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(255, 255, 255, 0.15);
+        }
+        body.light-theme .bluetooth-icon-btn:hover {
+            background: rgba(48, 43, 39, 0.06);
+            border-color: rgba(48, 43, 39, 0.3);
+        }
+
+        .overlay-card h2 {
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+            letter-spacing: -0.03em;
+        }
+
+        .overlay-card p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .device-info-badge {
+            background: var(--primary-light);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid var(--outline);
+        }
+
+        .instructions-list {
+            text-align: left;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            border-radius: 20px;
+            width: 100%;
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            border: 1px solid var(--outline-variant);
+        }
+        body.light-theme .instructions-list {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .instructions-list h4 {
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .instructions-list ol {
+            padding-left: 18px;
+        }
+
+        /* Responsive Bento Grid Dashboard Layout */
+        #main-content {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: var(--gutter);
+            width: 100%;
+            transition: filter 0.4s ease;
+        }
+
+        .blurred {
+            filter: blur(15px);
+            pointer-events: none;
+        }
+
+        /* Bento Grid Symmetrical Layout (col-6) */
+        .col-6 { grid-column: span 6; }
+        .col-12 { grid-column: span 12; }
+
+        /* Premium Acrylic Bento Card with Extreme Shadows */
+        .card-raised {
+            background: var(--surface);
+            backdrop-filter: var(--glass-blur);
+            border-radius: 32px;
+            padding: 24px;
+            border: 1px solid var(--outline);
+            box-shadow: var(--card-shadow);
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        body.light-theme .card-raised {
+            box-shadow: var(--card-shadow);
+        }
+
+        .card-raised:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.25);
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        body.light-theme .card-raised:hover {
+            border-color: rgba(48, 43, 39, 0.22);
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        .card-title {
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .card-title svg {
+            width: 18px;
+            height: 18px;
+            fill: var(--text-primary);
+            opacity: 0.8;
+        }
+
+        /* Weather Widget Styling */
+        .weather-widget {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface);
+            backdrop-filter: var(--glass-blur);
+            border-radius: 32px;
+            padding: 22px var(--gutter);
+            border: 1px solid var(--outline);
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+        }
+        body.light-theme .weather-widget {
+            box-shadow: var(--card-shadow);
+        }
+
+        .weather-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .weather-location {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .weather-temp {
+            font-size: 34px;
+            font-weight: 900;
+            color: var(--text-primary);
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+        }
+
+        .weather-condition {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--accent-warm);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .weather-icon-box svg {
+            width: 52px;
+            height: 52px;
+            fill: var(--text-primary);
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.1));
+        }
+
+        /* Telemetry Sensor Grid */
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--gutter);
+        }
+
+        .telemetry-card {
+            background: var(--surface);
+            backdrop-filter: var(--glass-blur);
+            border-radius: 28px;
+            padding: 20px;
+            border: 1px solid var(--outline);
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--telemetry-shadow);
+            transition: all 0.3s ease;
+        }
+        body.light-theme .telemetry-card {
+            box-shadow: var(--telemetry-shadow);
+        }
+
+        .telemetry-card:hover {
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+        body.light-theme .telemetry-card:hover {
+            border-color: rgba(48, 43, 39, 0.2);
+        }
+
+        .telemetry-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--outline-variant);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+        body.light-theme .telemetry-icon {
+            background: rgba(48, 43, 39, 0.03);
+        }
+
+        .telemetry-icon svg {
+            width: 20px;
+            height: 20px;
+            fill: var(--text-primary);
+        }
+
+        .telemetry-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .telemetry-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 36px;
+            font-weight: 900;
+            color: var(--text-primary);
+            line-height: 1.1;
+            letter-spacing: -0.04em;
+        }
+
+        .telemetry-unit {
+            font-size: 16px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-left: 2px;
+        }
+
+        /* Medication Dashboard Row */
+        .med-summary-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--gutter);
+        }
+
+        .med-summary-card {
+            background: var(--surface);
+            backdrop-filter: var(--glass-blur);
+            border-radius: 28px;
+            padding: 20px 14px;
+            text-align: center;
+            border: 1px solid var(--outline);
+            box-shadow: var(--telemetry-shadow);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        body.light-theme .med-summary-card {
+            box-shadow: var(--telemetry-shadow);
+        }
+
+        .med-summary-card.completed {
+            border: 1px solid rgba(163, 230, 53, 0.3);
+            background: rgba(163, 230, 53, 0.08);
+            box-shadow: 0 12px 36px rgba(163, 230, 53, 0.15);
+        }
+        body.light-theme .med-summary-card.completed {
+            background: rgba(163, 230, 53, 0.15);
+            box-shadow: 0 8px 24px rgba(163, 230, 53, 0.08);
+        }
+
+        .med-icon-wrap {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--outline-variant);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+        }
+        body.light-theme .med-icon-wrap {
+            background: rgba(48, 43, 39, 0.03);
+        }
+
+        .med-summary-card.completed .med-icon-wrap {
+            background: rgba(163, 230, 53, 0.15);
+            color: var(--success);
+            border-color: rgba(163, 230, 53, 0.3);
+        }
+
+        .med-icon-wrap svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        .med-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .med-status-badge {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--outline-variant);
+        }
+        body.light-theme .med-status-badge {
+            background: rgba(48, 43, 39, 0.03);
+        }
+        .med-summary-card.completed .med-status-badge {
+            background: rgba(163, 230, 53, 0.15);
+            color: var(--success);
+            border-color: rgba(163, 230, 53, 0.2);
+        }
+
+        /* Calendar Styling */
+        .calendar-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .calendar-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .calendar-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+        }
+
+        .calendar-nav-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--outline);
+            cursor: pointer;
+            color: var(--text-primary);
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 700;
+            transition: all 0.2s ease;
+        }
+        body.light-theme .calendar-nav-btn {
+            background: rgba(48, 43, 39, 0.03);
+        }
+        .calendar-nav-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+        body.light-theme .calendar-nav-btn:hover {
+            background: rgba(48, 43, 39, 0.08);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+            text-align: center;
+        }
+
+        .day-header {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--text-secondary);
+            padding: 2px 0;
+            text-transform: uppercase;
+        }
+
+        .day-cell {
+            aspect-ratio: 1.25; /* Compacted height for better symmetry */
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--outline-variant);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 5px 4px;
+            font-size: 13px;
+            font-weight: 700;
+            transition: background 0.3s ease;
+        }
+        body.light-theme .day-cell {
+            background: rgba(48, 43, 39, 0.01);
+        }
+
+        .day-cell.today {
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        body.light-theme .day-cell.today {
+            border-color: rgba(48, 43, 39, 0.6);
+            background: rgba(48, 43, 39, 0.03);
+        }
+
+        .day-cell.empty {
+            background: transparent;
+            border: none;
+            pointer-events: none;
+        }
+
+        .med-dots-container {
+            display: flex;
+            justify-content: center;
+            gap: 3px;
+            width: 100%;
+        }
+
+        .med-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+        }
+        body.light-theme .med-dot {
+            background: rgba(48, 43, 39, 0.1);
+        }
+
+        .med-dot.morning-done { background-color: var(--accent-warm); }
+        .med-dot.lunch-done { background-color: #f3be55; }
+        .med-dot.dinner-done { background-color: #e6b34b; }
+
+        /* Actuator Controls Grid */
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+        }
+
+        .control-row {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 24px;
+            padding: 16px;
+            border: 1px solid var(--outline-variant);
+            gap: 14px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+        body.light-theme .control-row {
+            background: rgba(48, 43, 39, 0.02);
+            box-shadow: 0 4px 12px rgba(48, 43, 39, 0.01);
+        }
+        .control-row:hover {
+            border-color: var(--outline);
+        }
+
+        .control-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .control-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--outline-variant);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        body.light-theme .control-icon {
+            background: rgba(48, 43, 39, 0.03);
+        }
+
+        .control-icon svg {
+            width: 18px;
+            height: 18px;
+            fill: var(--text-primary);
+        }
+
+        .control-text {
+            text-align: left;
+        }
+
+        .control-text h4 {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .control-text p {
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+
+        /* Pill Capsule Switch */
+        .toggle-group {
+            display: flex;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 9999px;
+            padding: 4px;
+            width: 100%;
+            height: 40px;
+            border: 1px solid var(--outline-variant);
+        }
+        body.light-theme .toggle-group {
+            background: rgba(48, 43, 39, 0.08);
+        }
+
+        .btn-toggle-option {
+            flex: 1;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            border-radius: 9999px;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Pure white capsule styling */
+        .btn-toggle-option.active {
+            background: #ffffff;
+            color: #141210;
+            font-weight: 800;
+            box-shadow: 0 4px 16px rgba(255, 255, 255, 0.35);
+        }
+
+        body.light-theme .btn-toggle-option.active {
+            background: #38322e;
+            color: #ffffff;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Raised Action Trigger Button */
+        .btn-action-trigger {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--outline);
+            color: var(--text-primary);
+            padding: 12px 20px;
+            border-radius: 14px;
+            font-size: 13px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        body.light-theme .btn-action-trigger {
+            background: rgba(48, 43, 39, 0.03);
+        }
+
+        .btn-action-trigger:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+        body.light-theme .btn-action-trigger:hover {
+            background: rgba(48, 43, 39, 0.08);
+            border-color: rgba(48, 43, 39, 0.3);
+        }
+
+        /* Terminal Logging Box inside Modal */
+        .terminal-logs {
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            color: var(--text-primary);
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid var(--outline-variant);
+        }
+        body.light-theme .terminal-logs {
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        .log-line {
+            word-break: break-all;
+        }
+        .log-tx { color: #f59e0b; font-weight: 700; }
+        body.light-theme .log-tx { color: #d97706; }
+
+        .log-rx { color: var(--success); font-weight: 700; }
+        body.light-theme .log-rx { color: #65a30d; }
+
+        .log-sys { color: var(--text-secondary); }
+        .log-err { color: var(--error); font-weight: 700; }
+
+        .terminal-input-bar {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .terminal-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--outline-variant);
+            border-radius: 12px;
+            padding: 10px 14px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            outline: none;
+        }
+        body.light-theme .terminal-input {
+            background: rgba(0, 0, 0, 0.03);
+            color: var(--text-primary);
+            border-color: rgba(48, 43, 39, 0.1);
+        }
+        .terminal-input:focus {
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        body.light-theme .terminal-input:focus {
+            border-color: rgba(48, 43, 39, 0.3);
+        }
+
+        .btn-terminal-send {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--outline);
+            border-radius: 12px;
+            padding: 10px 20px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        body.light-theme .btn-terminal-send {
+            background: rgba(48, 43, 39, 0.03);
+            border-color: rgba(48, 43, 39, 0.1);
+        }
+        .btn-terminal-send:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        body.light-theme .btn-terminal-send:hover {
+            background: rgba(48, 43, 39, 0.08);
+        }
+
+        /* Settings Modal Panel (Translucent Overlay) */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 8, 7, 0.65);
+            backdrop-filter: blur(25px);
+            z-index: 110;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: var(--gutter);
+        }
+        body.light-theme .modal {
+            background: rgba(235, 232, 227, 0.5);
+        }
+
+        .modal.active {
+            display: flex;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .modal-card {
+            width: 100%;
+            max-width: 420px; /* Slightly wider to prevent inline deadline inputs from wrapping */
+            background: rgba(45, 40, 36, 0.9);
+            border-radius: 28px;
+            padding: 28px;
+            border: 1px solid var(--outline);
+            box-shadow: 0 32px 80px rgba(0, 0, 0, 0.7);
+            transition: background 0.4s ease;
+        }
+        body.light-theme .modal-card {
+            background: rgba(245, 243, 239, 0.95);
+            border-color: var(--outline);
+            box-shadow: 0 24px 60px rgba(48, 43, 39, 0.08);
+            color: #302b27;
+        }
+
+        .modal-card h3 {
+            font-size: 18px;
+            font-weight: 800;
+            margin-bottom: 18px;
+            color: var(--text-primary);
+        }
+
+        .setting-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .setting-field label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .setting-field input, .setting-field select {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--outline-variant);
+            border-radius: 12px;
+            padding: 11px;
+            color: var(--text-primary);
+            outline: none;
+            font-family: inherit;
+        }
+        body.light-theme .setting-field input, body.light-theme .setting-field select {
+            background: rgba(0, 0, 0, 0.03);
+            color: #302b27;
+            border-color: rgba(48, 43, 39, 0.1);
+        }
+        .setting-field input:focus, .setting-field select:focus {
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        body.light-theme .setting-field input:focus, body.light-theme .setting-field select:focus {
+            border-color: rgba(48, 43, 39, 0.3);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn-modal {
+            flex: 1;
+            padding: 12px;
+            border-radius: 12px;
+            border: none;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-modal-save {
+            background: #ffffff;
+            color: #141210;
+        }
+        body.light-theme .btn-modal-save {
+            background: #38322e;
+            color: #ffffff;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        }
+        .btn-modal-cancel {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--outline);
+            color: var(--text-secondary);
+        }
+        body.light-theme .btn-modal-cancel {
+            background: rgba(48, 43, 39, 0.03);
+            color: #302b27;
+            border-color: rgba(48, 43, 39, 0.1);
+        }
+        .btn-modal:hover {
+            transform: translateY(-1px);
+        }
+
+        /* Responsive Media Queries */
+        @media (max-width: 900px) {
+            .col-6 { grid-column: span 12; }
+        }
+        @media (max-width: 600px) {
+            .control-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Emergency Alarm CSS Animation details */
+        @keyframes pulse-emergency {
+            0% { transform: scale(1); filter: drop-shadow(0 0 10px var(--error)); }
+            100% { transform: scale(1.1); filter: drop-shadow(0 0 35px var(--error)); }
+        }
+    </style>
+    <!-- Firebase SDK (compat version for smooth HTML5 integration) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+    <div id="app-container">
+
+        <!-- 1. Connection Overlay -->
+        <div id="connect-overlay">
+            <div class="overlay-card">
+                <button id="btn-connect" class="bluetooth-icon-btn" onclick="connectBLE()" aria-label="기기 연결">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M7 17h2v-3.79l2.29 2.29 1.42-1.42L9.41 11l3.3-3.3-1.42-1.42L9 8.59V5H7v12M9 5l3.5 3.5L9 12V5m0 7 3.5 3.5L9 19v-7zM17 7h-2v2h2V7m-2 4h2v2h-2v-2m2 4h-2v2h2v-2z"/>
+                    </svg>
+                </button>
+                <h2>스마트 기기 연결</h2>
+                <p>ESP32 디바이스와 블루투스(BLE) 통신을 연결하여 실시간 복약 정보 수집 및 원격 기기 제어를 활성화합니다.</p>
+                
+                <div class="device-info-badge">
+                    <svg viewBox="0 0 24 24" style="width:14px; height:14px; fill:currentColor;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-6.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                    스캔 대상 기기명: ESP_mini
+                </div>
+
+                <div class="instructions-list">
+                    <h4>💡 기기 연결 안내</h4>
+                    <ol>
+                        <li>복약 측정 하드웨어 박스의 전원을 켭니다.</li>
+                        <li><b>안드로이드/PC:</b> 크롬 또는 엣지 브라우저에서 실행하십시오.</li>
+                        <li><b>iOS (아이폰):</b> App Store에서 <b>Bluefy</b> 앱을 다운로드 및 실행하여 접속하십시오.</li>
+                    </ol>
+                </div>
+                <button class="btn-action-trigger" onclick="enterDemoMode()" style="margin-top: 20px; background: rgba(255, 255, 255, 0.05); color: var(--text-primary);">
+                    💡 블루투스 없이 화면 보기 (데모 모드)
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. Dashboard Header -->
+        <header>
+            <div class="header-left">
+                <h1>스마트 복약/홈 매니저</h1>
+                <span>제작자: park</span>
+            </div>
+            <div class="header-right">
+                <div id="connection-status" class="status-badge status-disconnected">
+                    <span class="status-dot"></span>
+                    <span id="status-text">연결 대기</span>
+                </div>
+                <button id="btn-disconnect" class="btn-disconnect" onclick="disconnectBLE()" title="연결 해제">
+                    <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-6.48 10-10S17.52 2 12 2zm4 11H8V11H16V13z"/>
+                    </svg>
+                </button>
+                
+                <!-- Terminal Toggle Button (Consolidated next to Settings & Theme buttons) -->
+                <button id="btn-terminal-toggle" class="btn-settings" onclick="openTerminalModal()" title="시리얼 통신 로그">
+                    <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;">
+                        <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8h16v10zm-14-6h8v2H6v-2zm10 0h2v2h-2v-2z"/>
+                    </svg>
+                </button>
+
+                <!-- Theme Toggle Button -->
+                <button id="btn-theme-toggle" class="btn-settings" onclick="toggleTheme()" title="화면 테마 변경">
+                    <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-6.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-13c-2.76 0-5 2.24-5 5s2.24 5 5 5V7z"/>
+                    </svg>
+                </button>
+
+                <button class="btn-settings" onclick="openSettingsModal()" title="설정">
+                    <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;">
+                        <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- 3. Settings Modal Panel -->
+        <div id="settings-modal" class="modal">
+            <div class="modal-card">
+                <h3>⚙️ 날씨 연동 및 설정</h3>
+                
+                <div class="setting-field">
+                    <label for="input-api-key">OpenWeather API Key</label>
+                    <input type="text" id="input-api-key" placeholder="API Key를 입력하세요">
+                </div>
+
+                <div class="setting-field">
+                    <label for="input-city">대상 도시명 (영문)</label>
+                    <input type="text" id="input-city" placeholder="예: Seoul">
+                </div>
+
+                <div class="setting-field">
+                    <label for="select-interval">날씨 감시 주기</label>
+                    <select id="select-interval">
+                        <option value="5">5분 주기</option>
+                        <option value="10" selected>10분 주기</option>
+                        <option value="30">30분 주기</option>
+                    </select>
+                </div>
+
+                <div class="setting-field switch-container">
+                    <label>날씨 블라인드 자동 조작</label>
+                    <div class="toggle-group" style="width: 100px; height: 32px; padding: 2px;">
+                        <button id="btn-auto-on" class="btn-toggle-option active" onclick="toggleAutoWeather(true)">ON</button>
+                        <button id="btn-auto-off" class="btn-toggle-option" onclick="toggleAutoWeather(false)">OFF</button>
+                    </div>
+                </div>
+
+                <!-- Firebase Realtime Database Integration -->
+                <div style="border-top: 1px solid var(--outline-variant); margin-top: 16px; padding-top: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="font-size: 12px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">🔥 Firebase 실시간 연동</h4>
+                        <div class="toggle-group" style="width: 100px; height: 28px; padding: 2px;">
+                            <button id="btn-fb-on" class="btn-toggle-option" onclick="toggleFirebaseEnabled(true)">ON</button>
+                            <button id="btn-fb-off" class="btn-toggle-option active" onclick="toggleFirebaseEnabled(false)">OFF</button>
+                        </div>
+                    </div>
+                    
+                    <div id="fb-fields-container" style="display: none; flex-direction: column; gap: 10px;">
+                        <div class="setting-field" style="margin-bottom: 0;">
+                            <label for="select-user-mode" style="font-size: 10px;">사용 모드</label>
+                            <select id="select-user-mode" onchange="onUserModeChange()" style="padding: 8px; font-size: 12px;">
+                                <option value="patient" selected>환자 / 게이트웨이 모드 (기기 연동용)</option>
+                                <option value="protector">보호자 모니터링 뷰어 모드 (기기 연결 없음)</option>
+                            </select>
+                        </div>
+                        <div class="setting-field" style="margin-bottom: 0;">
+                            <label for="input-fb-url" style="font-size: 10px;">Database URL</label>
+                            <input type="text" id="input-fb-url" placeholder="https://your-database-id.firebaseio.com" style="padding: 8px; font-size: 12px;">
+                        </div>
+                        <div class="setting-field" style="margin-bottom: 0;">
+                            <label for="input-fb-api" style="font-size: 10px;">API Key</label>
+                            <input type="text" id="input-fb-api" placeholder="AIzaSy..." style="padding: 8px; font-size: 12px;">
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <div class="setting-field" style="flex: 1; margin-bottom: 0;">
+                                <label for="input-fb-project" style="font-size: 10px;">Project ID</label>
+                                <input type="text" id="input-fb-project" placeholder="your-project-id" style="padding: 8px; font-size: 12px;">
+                            </div>
+                            <div class="setting-field" style="flex: 1; margin-bottom: 0;">
+                                <label for="input-fb-device" style="font-size: 10px;">기기 ID (환자식별)</label>
+                                <input type="text" id="input-fb-device" placeholder="elder_1" style="padding: 8px; font-size: 12px;" value="elder_1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Medication Deadline Settings -->
+                <div style="border-top: 1px solid var(--outline-variant); margin-top: 20px; padding-top: 16px; width: 100%;">
+                    <h4 style="font-size: 12px; font-weight: 800; margin-bottom: 12px; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em;">⏰ 복약 마감 시간 설정 (24시간제)</h4>
+                    <div style="display: flex; gap: 8px; width: 100%;">
+                        <div class="setting-field" style="flex: 1; margin-bottom: 0; gap: 4px;">
+                            <label for="input-morning-time" style="font-size: 10px; font-weight: 700; color: var(--text-secondary);">아침</label>
+                            <input type="text" id="input-morning-time" placeholder="10:00" style="width: 100%; padding: 8px 4px; font-size: 12px; text-align: center; border-radius: 8px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--outline-variant); color: var(--text-primary);" value="10:00">
+                        </div>
+                        <div class="setting-field" style="flex: 1; margin-bottom: 0; gap: 4px;">
+                            <label for="input-lunch-time" style="font-size: 10px; font-weight: 700; color: var(--text-secondary);">점심</label>
+                            <input type="text" id="input-lunch-time" placeholder="15:00" style="width: 100%; padding: 8px 4px; font-size: 12px; text-align: center; border-radius: 8px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--outline-variant); color: var(--text-primary);" value="15:00">
+                        </div>
+                        <div class="setting-field" style="flex: 1; margin-bottom: 0; gap: 4px;">
+                            <label for="input-dinner-time" style="font-size: 10px; font-weight: 700; color: var(--text-secondary);">저녁</label>
+                            <input type="text" id="input-dinner-time" placeholder="21:00" style="width: 100%; padding: 8px 4px; font-size: 12px; text-align: center; border-radius: 8px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--outline-variant); color: var(--text-primary);" value="21:00">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn-modal btn-modal-cancel" onclick="closeSettingsModal()">취소</button>
+                    <button class="btn-modal btn-modal-save" onclick="saveSettings()">저장</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Serial Terminal Modal Panel -->
+        <div id="terminal-modal" class="modal">
+            <div class="modal-card" style="max-width: 500px; height: 480px; display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--outline-variant); padding-bottom: 8px;">
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text-primary);">📟 원시 통신 로그 (시리얼 터미널)</h3>
+                    <span onclick="clearTerminal()" style="cursor:pointer; text-decoration: underline; font-size: 11px; color: var(--text-secondary);">로그 청소</span>
+                </div>
+                
+                <div id="terminal-output" class="terminal-logs" style="flex: 1; min-height: auto; margin-bottom: 12px;">
+                    <div class="log-line log-sys">[SYS] 디바이스 연결 수립 이후 원시 데이터 패킷이 표출됩니다.</div>
+                </div>
+                
+                <div class="terminal-input-bar">
+                    <input type="text" id="terminal-cmd" class="terminal-input" placeholder="명령어 송신 (예: a)" maxlength="1" onkeydown="if(event.key==='Enter') sendCustomCommand()">
+                    <button class="btn-terminal-send" onclick="sendCustomCommand()">전송</button>
+                </div>
+                
+                <div class="modal-actions" style="margin-top: 14px;">
+                    <button class="btn-modal btn-modal-cancel" onclick="closeTerminalModal()" style="width: 100%;">닫기</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Emergency Overlay Panel (Glowing Red) -->
+        <div id="emergency-overlay" class="modal" style="background: rgba(220, 38, 38, 0.45); backdrop-filter: blur(25px) saturate(160%); z-index: 120;">
+            <div class="modal-card" style="max-width: 440px; background: rgba(30, 10, 10, 0.9); border: 2px solid var(--error); box-shadow: 0 0 50px rgba(239, 68, 68, 0.8); text-align: center; color: #fff;">
+                <div style="font-size: 64px; margin-bottom: 16px; animation: pulse-emergency 1s infinite alternate;">🚨</div>
+                <h2 style="font-size: 26px; font-weight: 900; color: var(--error); margin-bottom: 12px; letter-spacing: -0.02em;">긴급 비상 경보 (EMERGENCY)</h2>
+                <p id="emergency-message" style="font-size: 14px; color: rgba(255,255,255,0.85); line-height: 1.6; margin-bottom: 24px;">
+                    복약 시간이 지체되었거나 비상 버튼이 작동되었습니다! 복약자 상태를 즉시 점검하세요.
+                </p>
+                <button class="btn-action-trigger" onclick="dismissEmergency()" style="background: var(--error); color: #fff; border: none; font-weight: 800; font-size: 14px; box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);">
+                    경보 해제 (Dismiss Alert)
+                </button>
+            </div>
+        </div>
+
+        <!-- 6. Fluid Responsive Main Bento Grid Dashboard Content (6:6 Symmetrical Layout) -->
+        <div id="main-content" class="blurred">
+
+            <!-- LEFT COLUMN: WEATHER, TELEMETRIES & CONTROLS -->
+            <div class="col-6 flex-container" style="display:flex; flex-direction:column; gap: var(--gutter);">
+                
+                <!-- Weather Widget -->
+                <div class="weather-widget">
+                    <div class="weather-info">
+                        <span id="widget-location" class="weather-location">날씨 연동 대기</span>
+                        <span id="widget-temp" class="weather-temp">--°C</span>
+                        <span id="widget-status" class="weather-condition">
+                            <span id="widget-desc">API Key를 등록하십시오.</span>
+                        </span>
+                    </div>
+                    <div class="weather-icon-box" id="widget-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.8 1.42-1.42zM4 10.5H1v2h3v-2zm9-9h-2v3h2v-3zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.75l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5h3v2h-3v-2zm-8-6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm-7 2.5H1v2h4v-2zm7 2v3h2v-3h-2z"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Telemetry Cards -->
+                <div class="telemetry-grid">
+                    <div class="telemetry-card">
+                        <div class="telemetry-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M15 13V5c0-1.66-1.34-3-3-3S9 3.34 9 5v8c-1.21.91-2 2.37-2 4 0 2.76 2.24 5 5 5s5-2.24 5-5c0-1.63-.79-3.09-2-4zm-3-9c.55 0 1 .45 1 1v3h-2V5c0-.55.45-1 1-1z"/>
+                            </svg>
+                        </div>
+                        <span class="telemetry-label">실외 온도</span>
+                        <div class="telemetry-value">
+                            <span id="lbl-temp">--</span><span class="telemetry-unit">°C</span>
+                        </div>
+                    </div>
+
+                    <div class="telemetry-card">
+                        <div class="telemetry-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+                            </svg>
+                        </div>
+                        <span class="telemetry-label">실외 습도</span>
+                        <div class="telemetry-value">
+                            <span id="lbl-humi">--</span><span class="telemetry-unit">%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actuator Controls (Moved underneath Outdoor Telemetries) -->
+                <div class="card-raised">
+                    <span class="card-title">
+                        실내 기구 제어 센터
+                        <svg viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73-1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59c1.69-.98l2.49 1.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+                    </span>
+                    
+                    <div class="control-grid">
+                        <!-- LED Switch -->
+                        <div class="control-row">
+                            <div class="control-info">
+                                <div class="control-icon">
+                                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-6.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41c0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
+                                </div>
+                                <div class="control-text">
+                                    <h4>메인 전등</h4>
+                                    <p>RGB LED 제어</p>
+                                </div>
+                            </div>
+                            <div class="toggle-group">
+                                <button id="btn-led-on" class="btn-toggle-option" onclick="sendCommand('3')">ON</button>
+                                <button id="btn-led-off" class="btn-toggle-option active" onclick="sendCommand('4')">OFF</button>
+                            </div>
+                        </div>
+
+                        <!-- LCD Backlight Switch -->
+                        <div class="control-row">
+                            <div class="control-info">
+                                <div class="control-icon">
+                                    <svg viewBox="0 0 24 24"><path d="M21 2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7v2H8v2h8v-2h-2v-2h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H3V4h18v12z"/></svg>
+                                </div>
+                                <div class="control-text">
+                                    <h4>LCD 모니터</h4>
+                                    <p>백라이트 제어</p>
+                                </div>
+                            </div>
+                            <div class="toggle-group">
+                                <button id="btn-lcd-on" class="btn-toggle-option active" onclick="sendCommand('1')">ON</button>
+                                <button id="btn-lcd-off" class="btn-toggle-option" onclick="sendCommand('2')">OFF</button>
+                            </div>
+                        </div>
+
+                        <!-- Blind Servomotor -->
+                        <div class="control-row">
+                            <div class="control-info">
+                                <div class="control-icon">
+                                    <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 16H5V4h14v14z"/></svg>
+                                </div>
+                                <div class="control-text">
+                                    <h4>창문 블라인드</h4>
+                                    <p>모터 창 제어</p>
+                                </div>
+                            </div>
+                            <div class="toggle-group">
+                                <button id="btn-blind-on" class="btn-toggle-option" onclick="sendCommand('5')">열기</button>
+                                <button id="btn-blind-off" class="btn-toggle-option active" onclick="sendCommand('6')">닫기</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN: MEDICATION SUMMARY & CALENDAR (Symmetrical Pair) -->
+            <div class="col-6 flex-container" style="display:flex; flex-direction:column; gap: var(--gutter);">
+                
+                <!-- Medication Summary Cards -->
+                <div class="med-summary-row">
+                    <div id="summary-morning" class="med-summary-card">
+                        <div class="med-icon-wrap" style="color: #fbbf24;">
+                            <!-- Morning Sun -->
+                            <svg viewBox="0 0 24 24"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-5a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1zm0 17a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1zm-8-8a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1zm13 0a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1-1-1zM5.636 5.636a1 1 0 0 1 1.414 0l.707.707a1 1 0 1 1-1.414 1.414l-.707-.707a1 1 0 0 1 0-1.414zm11.314 11.314a1 1 0 0 1 1.414 0l.707.707a1 1 0 1 1-1.414 1.414l-.707-.707a1 1 0 0 1 0-1.414zM7.757 16.243a1 1 0 0 1 0 1.414l-.707.707a1 1 0 1 1-1.414-1.414l.707-.707a1 1 0 0 1 1.414 0zm10.607-10.607a1 1 0 0 1 0 1.414l-.707.707a1 1 0 1 1-1.414-1.414l.707-.707a1 1 0 0 1 1.414 0z" fill="currentColor"/></svg>
+                        </div>
+                        <span class="med-title">아침</span>
+                        <span id="badge-morning" class="med-status-badge">미복용</span>
+                    </div>
+
+                    <div id="summary-lunch" class="med-summary-card">
+                        <div class="med-icon-wrap" style="color: #f59e0b;">
+                            <!-- Lunch Spoon & Fork -->
+                            <svg viewBox="0 0 24 24"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3c-1.66 0-3 1.25-3 2.8V15h3v7h2v-7h3V8.8c0-1.55-1.34-2.8-3-2.8z" fill="currentColor"/></svg>
+                        </div>
+                        <span class="med-title">점심</span>
+                        <span id="badge-lunch" class="med-status-badge">미복용</span>
+                    </div>
+
+                    <div id="summary-dinner" class="med-summary-card">
+                        <div class="med-icon-wrap" style="color: #60a5fa;">
+                            <!-- Dinner Moon & Stars -->
+                            <svg viewBox="0 0 24 24"><path d="M12.3 22h-.1c-5.5 0-10-4.5-10-10 0-4.8 3.5-8.9 8.2-9.8.5-.1 1 .3.9.8-.1.4-.4.8-.8.9-3.5 1-6.1 4.3-6.1 8.1 0 4.4 3.6 8 8 8 3.2 0 6.1-1.9 7.3-4.8.2-.5.7-.7 1.2-.5.5.2.7.7.5 1.2-1.7 3.7-5.4 6.1-9.2 6.1zm7.1-13l.9-1.9 1.9-.9-1.9-.9-.9-1.9-.9 1.9-1.9.9 1.9.9.9 1.9zm-4.5-3.5l.5-1.1 1.1-.5-1.1-.5-.5-1.1-.5 1.1-1.1.5 1.1.5.5 1.1z" fill="currentColor"/></svg>
+                        </div>
+                        <span class="med-title">저녁</span>
+                        <span id="badge-dinner" class="med-status-badge">미복용</span>
+                    </div>
+                </div>
+
+                <!-- Medication Calendar (Grows dynamically for perfect horizontal symmetry) -->
+                <div class="card-raised" style="flex: 1; display:flex; flex-direction:column; justify-content:center;">
+                    <div class="calendar-container">
+                        <div class="calendar-header-row">
+                            <button class="calendar-nav-btn" onclick="prevMonth()">◀</button>
+                            <span id="calendar-month-year" class="calendar-title">2026년 7월</span>
+                            <button class="calendar-nav-btn" onclick="nextMonth()">▶</button>
+                        </div>
+                        <div class="calendar-grid" id="calendar-grid">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- JavaScript Control Block -->
+    <script>
+        const NUS_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+        const NUS_RX_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+        const NUS_TX_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
+
+        let device = null;
+        let rxCharacteristic = null;
+        let txCharacteristic = null;
+        let rxBuffer = "";
+
+        // Calendar & Medication state
+        let currentDate = new Date();
+        let medRecords = {};
+        let medDeadlines = { morning: "10:00", lunch: "15:00", dinner: "21:00" };
+        let alertedDays = {}; // Tracking alerts: { "YYYY-MM-DD": { morning: false, lunch: false, dinner: false } }
+        let beepInterval = null;
+
+        // Weather Monitoring engine settings
+        let weatherSettings = {
+            apiKey: "",
+            city: "Seoul",
+            interval: 10,
+            autoEnabled: true
+        };
+        let weatherTimer = null;
+
+        // Firebase Realtime Database Integration Settings
+        let firebaseSettings = {
+            enabled: false,
+            apiKey: "",
+            databaseURL: "",
+            projectId: "",
+            deviceId: "elder_1",
+            userMode: "patient" // "patient" (환자/게이트웨이) 또는 "protector" (보호자 모니터링)
+        };
+        let fbApp = null;
+        let fbDatabase = null;
+        let fbMedsRef = null;
+        let fbEmergencyRef = null;
+
+        // On DOM Loaded
+        window.addEventListener('DOMContentLoaded', () => {
+            // Restore theme setting
+            const savedTheme = localStorage.getItem('theme_mode_v1');
+            if (savedTheme === 'light') {
+                document.body.classList.add('light-theme');
+            }
+
+            const savedMeds = localStorage.getItem('medication_records_v1');
+            if (savedMeds) {
+                medRecords = JSON.parse(savedMeds);
+            }
+            
+            const savedSettings = localStorage.getItem('weather_settings_v1');
+            if (savedSettings) {
+                weatherSettings = JSON.parse(savedSettings);
+            }
+
+            const savedDeadlines = localStorage.getItem('med_deadlines_v1');
+            if (savedDeadlines) {
+                medDeadlines = JSON.parse(savedDeadlines);
+            }
+
+            const savedAlerted = localStorage.getItem('alerted_days_v1');
+            if (savedAlerted) {
+                alertedDays = JSON.parse(savedAlerted);
+            }
+
+            // Restore Firebase configurations
+            const savedFbSettings = localStorage.getItem('firebase_settings_v1');
+            if (savedFbSettings) {
+                firebaseSettings = JSON.parse(savedFbSettings);
+            }
+
+            // Bind values to UI Form
+            document.getElementById('input-api-key').value = weatherSettings.apiKey || "";
+            document.getElementById('input-city').value = weatherSettings.city || "Seoul";
+            document.getElementById('select-interval').value = weatherSettings.interval || 10;
+            toggleAutoWeatherUI(weatherSettings.autoEnabled);
+
+            // Bind medication deadline values to inputs
+            document.getElementById('input-morning-time').value = medDeadlines.morning || "10:00";
+            document.getElementById('input-lunch-time').value = medDeadlines.lunch || "15:00";
+            document.getElementById('input-dinner-time').value = medDeadlines.dinner || "21:00";
+
+            // Bind Firebase values to inputs
+            document.getElementById('select-user-mode').value = firebaseSettings.userMode || "patient";
+            document.getElementById('input-fb-url').value = firebaseSettings.databaseURL || "";
+            document.getElementById('input-fb-api').value = firebaseSettings.apiKey || "";
+            document.getElementById('input-fb-project').value = firebaseSettings.projectId || "";
+            document.getElementById('input-fb-device').value = firebaseSettings.deviceId || "elder_1";
+            toggleFirebaseEnabledUI(firebaseSettings.enabled);
+            onUserModeChange();
+
+            renderCalendar();
+            updateMedSummaryToday();
+            startWeatherPolling();
+
+            // Initialize Firebase if enabled
+            if (firebaseSettings.enabled) {
+                initFirebase();
+            }
+
+            // Run medication deadline check every 10 seconds
+            setInterval(checkMedicationDeadlines, 10000);
+        });
+
+        // Theme Toggle Control
+        function toggleTheme() {
+            const isLight = document.body.classList.toggle('light-theme');
+            localStorage.setItem('theme_mode_v1', isLight ? 'light' : 'dark');
+            logTerminal('SYS', `[테마] 화면 테마가 ${isLight ? '라이트 모드' : '다크 모드'}로 전환되었습니다.`);
+        }
+
+        // Terminal Modal controls
+        function openTerminalModal() {
+            document.getElementById('terminal-modal').classList.add('active');
+            // Scroll to bottom on open
+            setTimeout(() => {
+                const output = document.getElementById('terminal-output');
+                output.scrollTop = output.scrollHeight;
+            }, 50);
+        }
+
+        function closeTerminalModal() {
+            document.getElementById('terminal-modal').classList.remove('active');
+        }
+
+        // Connection HUD status
+        function updateStatus(state, text) {
+            const badge = document.getElementById('connection-status');
+            const statusText = document.getElementById('status-text');
+            const disconnectBtn = document.getElementById('btn-disconnect');
+            const mainContent = document.getElementById('main-content');
+            const connectOverlay = document.getElementById('connect-overlay');
+
+            badge.className = 'status-badge';
+            disconnectBtn.style.display = 'none';
+
+            if (state === 'disconnected') {
+                badge.classList.add('status-disconnected');
+                statusText.textContent = text || '연결 대기';
+                mainContent.classList.add('blurred');
+                connectOverlay.style.opacity = '1';
+                connectOverlay.style.visibility = 'visible';
+            } else if (state === 'connecting') {
+                badge.classList.add('status-connecting');
+                statusText.textContent = text || '연결 중';
+            } else if (state === 'connected') {
+                badge.classList.add('status-connected');
+                statusText.textContent = text || '연결됨';
+                disconnectBtn.style.display = 'flex';
+                mainContent.classList.remove('blurred');
+                connectOverlay.style.opacity = '0';
+                setTimeout(() => {
+                    if (device && device.gatt.connected) {
+                        connectOverlay.style.visibility = 'hidden';
+                    } else if (!device) { // Demo mode bypass
+                        connectOverlay.style.visibility = 'hidden';
+                    }
+                }, 400);
+            }
+        }
+
+        // Live raw logging
+        function logTerminal(direction, data) {
+            const output = document.getElementById('terminal-output');
+            const now = new Date();
+            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+            
+            const logLine = document.createElement('div');
+            logLine.className = 'log-line';
+            
+            const timeSpan = document.createElement('span');
+            timeSpan.style.color = 'rgba(255, 255, 255, 0.35)';
+            timeSpan.textContent = `[${timeStr}] `;
+            logLine.appendChild(timeSpan);
+
+            const badgeSpan = document.createElement('span');
+            if (direction === 'TX') {
+                badgeSpan.className = 'log-tx';
+                badgeSpan.textContent = '▶ TX: ';
+            } else if (direction === 'RX') {
+                badgeSpan.className = 'log-rx';
+                badgeSpan.textContent = '◀ RX: ';
+            } else if (direction === 'SYS') {
+                badgeSpan.className = 'log-sys';
+                badgeSpan.textContent = '● SYS: ';
+            } else {
+                badgeSpan.className = 'log-err';
+                badgeSpan.textContent = '⚠️ ERR: ';
+            }
+            logLine.appendChild(badgeSpan);
+
+            const textSpan = document.createElement('span');
+            textSpan.textContent = data;
+            logLine.appendChild(textSpan);
+
+            output.appendChild(logLine);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        // BLE Core Connect Flow
+        async function connectBLE() {
+            updateStatus('connecting', '기기 검색 중');
+            try {
+                logTerminal('SYS', '블루투스 검색을 시작합니다 (대상: ESP_mini).');
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [
+                        { namePrefix: 'ESP_' },
+                        { services: [NUS_SERVICE_UUID] }
+                    ]
+                });
+
+                logTerminal('SYS', `연결 시도 대상: ${device.name}`);
+                device.addEventListener('gattserverdisconnected', onDisconnected);
+
+                const server = await device.gatt.connect();
+                logTerminal('SYS', 'GATT 연결 완료. 입출력 파이프 획득 중.');
+
+                const service = await server.getPrimaryService(NUS_SERVICE_UUID);
+                rxCharacteristic = await service.getCharacteristic(NUS_RX_UUID);
+                txCharacteristic = await service.getCharacteristic(NUS_TX_UUID);
+
+                await txCharacteristic.startNotifications();
+                txCharacteristic.addEventListener('characteristicvaluechanged', onTxNotification);
+
+                logTerminal('SYS', '스마트홈 무선 통신 수립 성공.');
+                updateStatus('connected', '연결됨');
+
+                // Read values instantly
+                refreshSensors();
+            } catch (error) {
+                console.error(error);
+                logTerminal('SYS', `연결 실패: ${error.message}`);
+                updateStatus('disconnected', '연결 오류');
+            }
+        }
+
+        function onDisconnected() {
+            logTerminal('SYS', '블루투스 기기와의 연동이 해제되었습니다.');
+            updateStatus('disconnected', '연결 대기');
+            device = null;
+            rxCharacteristic = null;
+            txCharacteristic = null;
+
+            // Reset HUD telemetry
+            document.getElementById('lbl-temp').textContent = '--';
+            document.getElementById('lbl-humi').textContent = '--';
+        }
+
+        function disconnectBLE() {
+            if (device && device.gatt.connected) {
+                device.gatt.disconnect();
+            } else { // Exit demo mode
+                onDisconnected();
+            }
+        }
+
+        function onTxNotification(event) {
+            const value = event.target.value;
+            const decoder = new TextDecoder('utf-8');
+            const dataStr = decoder.decode(value);
+            rxBuffer += dataStr;
+
+            let lineBreakIndex;
+            while ((lineBreakIndex = rxBuffer.indexOf('\n')) !== -1) {
+                const packet = rxBuffer.slice(0, lineBreakIndex).trim();
+                rxBuffer = rxBuffer.slice(lineBreakIndex + 1);
+                
+                if (packet.length > 0) {
+                    logTerminal('RX', packet);
+                    parseData(packet);
+                }
+            }
+        }
+
+        // Packet Parser (Weather & Meds logic)
+        function parseData(msg) {
+            // Medication update
+            if (msg.startsWith("MED:")) {
+                const todayStr = getFormattedDate(new Date());
+                if (!medRecords[todayStr]) {
+                    medRecords[todayStr] = { morning: false, lunch: false, dinner: false };
+                }
+
+                if (msg === "MED:MORNING") {
+                    medRecords[todayStr].morning = true;
+                    logTerminal('SYS', '☀️ 아침 복약 완료 신호가 캘린더에 저장되었습니다.');
+                } else if (msg === "MED:LUNCH") {
+                    medRecords[todayStr].lunch = true;
+                    logTerminal('SYS', '⛅ 점심 복약 완료 신호가 캘린더에 저장되었습니다.');
+                } else if (msg === "MED:DINNER") {
+                    medRecords[todayStr].dinner = true;
+                    logTerminal('SYS', '🌙 저녁 복약 완료 신호가 캘린더에 저장되었습니다.');
+                } else if (msg === "MED:EMERGENCY") {
+                    logTerminal('SYS', '🚨 [긴급 알림] 하드웨어 긴급 호출 버튼 이벤트 발생!');
+                    triggerEmergency("하드웨어 비상벨 터치 신호가 수신되었습니다!");
+                }
+
+                // Sync and redraw
+                localStorage.setItem('medication_records_v1', JSON.stringify(medRecords));
+                updateMedSummaryToday();
+                renderCalendar();
+
+                // Firebase upload sync if patient/gateway mode
+                uploadMedsToFirebase();
+                return;
+            }
+
+            // Temp
+            if (msg.includes('temp')) {
+                const match = msg.match(/temp\s*:\s*(\d+)/);
+                if (match) {
+                    logTerminal('SYS', `[디바이스 센서] 수신 온도: ${match[1]}°C (대시보드는 실외 온습도 표시 중)`);
+                }
+            }
+
+            // Humi
+            if (msg.includes('humi')) {
+                const match = msg.match(/humi\s*:\s*(\d+)/);
+                if (match) {
+                    logTerminal('SYS', `[디바이스 센서] 수신 습도: ${match[1]}% (대시보드는 실외 온습도 표시 중)`);
+                }
+            }
+        }
+
+        async function sendCommand(char) {
+            if (!rxCharacteristic) {
+                logTerminal('SYS', `[데모/수동] 명령 송신: '${char}' (기기 연결 없음)`);
+                applyLocalFeedback(char);
+                return;
+            }
+            try {
+                const encoder = new TextEncoder();
+                const buffer = encoder.encode(char);
+                await rxCharacteristic.writeValue(buffer);
+                logTerminal('TX', `명령 송신: '${char}'`);
+                applyLocalFeedback(char);
+            } catch (error) {
+                logTerminal('SYS', `명령어 송신 실패: ${error.message}`);
+            }
+        }
+
+        // Instantly react to button toggles local state
+        function applyLocalFeedback(char) {
+            if (char === '3') {
+                document.getElementById('btn-led-on').classList.add('active');
+                document.getElementById('btn-led-off').classList.remove('active');
+            } else if (char === '4') {
+                document.getElementById('btn-led-on').classList.remove('active');
+                document.getElementById('btn-led-off').classList.add('active');
+            } else if (char === '1') {
+                document.getElementById('btn-lcd-on').classList.add('active');
+                document.getElementById('btn-lcd-off').classList.remove('active');
+            } else if (char === '2') {
+                document.getElementById('btn-lcd-on').classList.remove('active');
+                document.getElementById('btn-lcd-off').classList.add('active');
+            } else if (char === '5') {
+                document.getElementById('btn-blind-on').classList.add('active');
+                document.getElementById('btn-blind-off').classList.remove('active');
+            } else if (char === '6') {
+                document.getElementById('btn-blind-on').classList.remove('active');
+                document.getElementById('btn-blind-off').classList.add('active');
+            }
+        }
+
+        function refreshSensors() {
+            if (!rxCharacteristic) {
+                // Virtual sensor feed
+                const demoTemp = Math.floor(Math.random() * 5) + 21; // 21 ~ 25
+                const demoHumi = Math.floor(Math.random() * 15) + 40; // 40 ~ 54
+                document.getElementById('lbl-temp').textContent = demoTemp;
+                document.getElementById('lbl-humi').textContent = demoHumi;
+                logTerminal('SYS', `[데모] 가상 실외 기상 갱신: 온도 ${demoTemp}°C, 습도 ${demoHumi}%`);
+                return;
+            }
+            checkWeather();
+        }
+
+        function enterDemoMode() {
+            logTerminal('SYS', '블루투스 기기 없이 대시보드 화면(데모 모드)에 진입했습니다.');
+            updateStatus('connected', '데모 작동 중');
+            
+            // Demo initials
+            document.getElementById('lbl-temp').textContent = '23';
+            document.getElementById('lbl-humi').textContent = '48';
+            
+            // 데모 모드 진입 시 테스트 편의를 위해 오늘 자 복약 상태를 '미복용'으로 강제 리셋합니다.
+            const todayStr = getFormattedDate(new Date());
+            medRecords[todayStr] = { morning: false, lunch: false, dinner: false };
+            localStorage.setItem('medication_records_v1', JSON.stringify(medRecords));
+            
+            // 오늘 날짜의 비상 알림 발령 플래그도 함께 초기화합니다.
+            alertedDays[todayStr] = { morning: false, lunch: false, dinner: false };
+            localStorage.setItem('alerted_days_v1', JSON.stringify(alertedDays));
+
+            updateMedSummaryToday();
+            renderCalendar();
+            
+            // 진입 시 즉시 마감 시간 위반 체크를 1회 실행합니다.
+            checkMedicationDeadlines();
+        }
+
+        function sendCustomCommand() {
+            const input = document.getElementById('terminal-cmd');
+            const cmd = input.value.trim();
+            if (cmd.length !== 1) {
+                logTerminal('SYS', '1글자씩만 송신 가능합니다.');
+                return;
+            }
+            sendCommand(cmd);
+            input.value = '';
+        }
+
+        function clearTerminal() {
+            document.getElementById('terminal-output').innerHTML = '';
+            logTerminal('SYS', '시리얼 통신 로그 기록이 초기화되었습니다.');
+        }
+
+        // Modal triggers
+        function openSettingsModal() {
+            document.getElementById('settings-modal').classList.add('active');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settings-modal').classList.remove('active');
+            // Restore UI fields
+            document.getElementById('input-api-key').value = weatherSettings.apiKey || "";
+            document.getElementById('input-city').value = weatherSettings.city || "Seoul";
+            document.getElementById('select-interval').value = weatherSettings.interval || 10;
+            toggleAutoWeatherUI(weatherSettings.autoEnabled);
+
+            document.getElementById('input-morning-time').value = medDeadlines.morning || "10:00";
+            document.getElementById('input-lunch-time').value = medDeadlines.lunch || "15:00";
+            document.getElementById('input-dinner-time').value = medDeadlines.dinner || "21:00";
+
+            // Restore Firebase configurations
+            document.getElementById('select-user-mode').value = firebaseSettings.userMode || "patient";
+            document.getElementById('input-fb-url').value = firebaseSettings.databaseURL || "";
+            document.getElementById('input-fb-api').value = firebaseSettings.apiKey || "";
+            document.getElementById('input-fb-project').value = firebaseSettings.projectId || "";
+            document.getElementById('input-fb-device').value = firebaseSettings.deviceId || "elder_1";
+            toggleFirebaseEnabledUI(firebaseSettings.enabled);
+            onUserModeChange();
+        }
+
+        // Firebase UI Toggle Control
+        function toggleFirebaseEnabled(enabled) {
+            firebaseSettings.enabled = enabled;
+            toggleFirebaseEnabledUI(enabled);
+        }
+
+        function toggleFirebaseEnabledUI(enabled) {
+            const btnOn = document.getElementById('btn-fb-on');
+            const btnOff = document.getElementById('btn-fb-off');
+            const container = document.getElementById('fb-fields-container');
+            if (enabled) {
+                btnOn.classList.add('active');
+                btnOff.classList.remove('active');
+                container.style.display = 'flex';
+            } else {
+                btnOn.classList.remove('active');
+                btnOff.classList.add('active');
+                container.style.display = 'none';
+            }
+        }
+
+        // Handle Mode Changes (Bypassing connect-overlay if protector mode is active)
+        function onUserModeChange() {
+            const mode = document.getElementById('select-user-mode').value;
+            const connectOverlay = document.getElementById('connect-overlay');
+            const mainContent = document.getElementById('main-content');
+
+            if (mode === 'protector' && firebaseSettings.enabled) {
+                // Protector mode: Auto bypass local Bluetooth pairing screen
+                connectOverlay.style.display = 'none';
+                mainContent.classList.remove('blurred');
+                logTerminal('SYS', '[모드] 보호자 모니터링 모드 활성화: BLE 페어링 화면을 우회합니다.');
+            } else {
+                connectOverlay.style.display = 'flex';
+                if (!device && !document.getElementById('connection-status').classList.contains('status-connected') && !document.getElementById('connection-status').classList.contains('status-connecting')) {
+                    mainContent.classList.add('blurred');
+                }
+            }
+        }
+
+        // Firebase Initialization Engine
+        function initFirebase() {
+            if (!firebaseSettings.databaseURL || !firebaseSettings.apiKey) {
+                logTerminal('ERR', 'Firebase 설정값(URL/API Key)이 불완전하여 연동을 건너뜁니다.');
+                return;
+            }
+
+            try {
+                const config = {
+                    apiKey: firebaseSettings.apiKey,
+                    databaseURL: firebaseSettings.databaseURL,
+                    projectId: firebaseSettings.projectId
+                };
+
+                // Check if already initialized to prevent app duplicate errors
+                if (firebase.apps.length === 0) {
+                    fbApp = firebase.initializeApp(config);
+                } else {
+                    fbApp = firebase.app();
+                }
+
+                fbDatabase = firebase.database();
+                const cleanDevice = firebaseSettings.deviceId.replace(/[.#$\[\]]/g, "_"); // sanitize path key
+                
+                fbMedsRef = fbDatabase.ref(`patients/${cleanDevice}/medication`);
+                fbEmergencyRef = fbDatabase.ref(`patients/${cleanDevice}/emergency`);
+
+                logTerminal('SYS', `🔥 Firebase Realtime DB 연결 수립 (${cleanDevice} 노드).`);
+
+                // Dynamic binding based on mode
+                if (firebaseSettings.userMode === 'protector') {
+                    // LISTEN MODE: Realtime database subscription
+                    fbMedsRef.on('value', (snapshot) => {
+                        const val = snapshot.val();
+                        if (val) {
+                            medRecords = val;
+                            localStorage.setItem('medication_records_v1', JSON.stringify(medRecords));
+                            updateMedSummaryToday();
+                            renderCalendar();
+                            logTerminal('SYS', '🔥 [클라우드 수신] 원격 복약 상태 변경이 자동 동기화되었습니다.');
+                        }
+                    });
+
+                    fbEmergencyRef.on('value', (snapshot) => {
+                        const val = snapshot.val();
+                        if (val && val.active) {
+                            triggerEmergency(`[원격 긴급 비상] ${val.reason} (발령시각: ${new Date(val.timestamp).toLocaleTimeString()})`, true);
+                        } else {
+                            // Remote safety status: auto dismiss overlay if active
+                            const overlay = document.getElementById('emergency-overlay');
+                            if (overlay.classList.contains('active')) {
+                                dismissEmergency(true);
+                            }
+                        }
+                    });
+                } else {
+                    // PATIENT MODE: Sync local medication updates to cloud
+                    // Perform initial push to align db
+                    uploadMedsToFirebase();
+                    
+                    // Listen to remote emergency reset (allows protector to remote turn off patient alarm)
+                    fbEmergencyRef.on('value', (snapshot) => {
+                        const val = snapshot.val();
+                        if (val && !val.active) {
+                            const overlay = document.getElementById('emergency-overlay');
+                            if (overlay.classList.contains('active')) {
+                                dismissEmergency(true); // silent dismiss, no loops
+                            }
+                        }
+                    });
+                }
+            } catch (err) {
+                logTerminal('ERR', `Firebase 초기화 실패: ${err.message}`);
+                console.error(err);
+            }
+        }
+
+        // Upload medication history to Firebase DB
+        function uploadMedsToFirebase() {
+            if (firebaseSettings.enabled && fbMedsRef && firebaseSettings.userMode === 'patient') {
+                fbMedsRef.set(medRecords)
+                    .then(() => logTerminal('SYS', '🔥 [클라우드 업로드] 복약 이력이 정상 백업되었습니다.'))
+                    .catch((err) => logTerminal('ERR', `클라우드 복약 백업 실패: ${err.message}`));
+            }
+        }
+
+        // Upload emergency trigger to Firebase DB
+        function uploadEmergencyToFirebase(active, reason = "") {
+            if (firebaseSettings.enabled && fbEmergencyRef && firebaseSettings.userMode === 'patient') {
+                fbEmergencyRef.set({
+                    active: active,
+                    reason: reason,
+                    timestamp: Date.now()
+                })
+                .then(() => logTerminal('SYS', `🔥 [클라우드 비상] 비상 플래그가 '${active}' 상태로 원격 전송되었습니다.`))
+                .catch((err) => logTerminal('ERR', `클라우드 비상 전송 실패: ${err.message}`));
+            }
+        }
+
+        function toggleAutoWeather(enabled) {
+            weatherSettings.autoEnabled = enabled;
+            toggleAutoWeatherUI(enabled);
+        }
+
+        function toggleAutoWeatherUI(enabled) {
+            const btnOn = document.getElementById('btn-auto-on');
+            const btnOff = document.getElementById('btn-auto-off');
+            if (enabled) {
+                btnOn.classList.add('active');
+                btnOff.classList.remove('active');
+            } else {
+                btnOn.classList.remove('active');
+                btnOff.classList.add('active');
+            }
+        }
+
+        function saveSettings() {
+            const apiKey = document.getElementById('input-api-key').value.trim();
+            const city = document.getElementById('input-city').value.trim() || "Seoul";
+            const interval = parseInt(document.getElementById('select-interval').value) || 10;
+
+            weatherSettings.apiKey = apiKey;
+            weatherSettings.city = city;
+            weatherSettings.interval = interval;
+
+            // Save medication deadlines
+            const morningT = document.getElementById('input-morning-time').value.trim() || "10:00";
+            const lunchT = document.getElementById('input-lunch-time').value.trim() || "15:00";
+            const dinnerT = document.getElementById('input-dinner-time').value.trim() || "21:00";
+            
+            medDeadlines.morning = morningT;
+            medDeadlines.lunch = lunchT;
+            medDeadlines.dinner = dinnerT;
+
+            // Save Firebase configurations
+            firebaseSettings.userMode = document.getElementById('select-user-mode').value;
+            firebaseSettings.databaseURL = document.getElementById('input-fb-url').value.trim();
+            firebaseSettings.apiKey = document.getElementById('input-fb-api').value.trim();
+            firebaseSettings.projectId = document.getElementById('input-fb-project').value.trim();
+            firebaseSettings.deviceId = document.getElementById('input-fb-device').value.trim() || "elder_1";
+
+            localStorage.setItem('weather_settings_v1', JSON.stringify(weatherSettings));
+            localStorage.setItem('med_deadlines_v1', JSON.stringify(medDeadlines));
+            localStorage.setItem('firebase_settings_v1', JSON.stringify(firebaseSettings));
+            
+            document.getElementById('settings-modal').classList.remove('active');
+            logTerminal('SYS', '설정 값이 정상 저장되었습니다. 복약 지연 여부를 실시간 검사합니다.');
+
+            // 테스트를 원활하게 할 수 있도록 설정 저장 시 오늘 날짜의 알림 여부를 초기화하고 즉시 체크를 수행합니다.
+            const todayStr = getFormattedDate(new Date());
+            alertedDays[todayStr] = { morning: false, lunch: false, dinner: false };
+            localStorage.setItem('alerted_days_v1', JSON.stringify(alertedDays));
+
+            // Sync user mode and bootstrap Firebase database
+            onUserModeChange();
+            if (firebaseSettings.enabled) {
+                initFirebase();
+            }
+
+            startWeatherPolling();
+
+            // 즉시 1회 실행하여 10초 딜레이 없이 피드백을 표시합니다.
+            checkMedicationDeadlines();
+        }
+
+        // Weather Engine (Restored to English description)
+        function startWeatherPolling() {
+            if (weatherTimer) {
+                clearInterval(weatherTimer);
+                weatherTimer = null;
+            }
+
+            checkWeather();
+            const ms = weatherSettings.interval * 60 * 1000;
+            weatherTimer = setInterval(checkWeather, ms);
+        }
+
+        async function checkWeather() {
+            const apiKey = weatherSettings.apiKey;
+            const city = weatherSettings.city;
+
+            const locText = document.getElementById('widget-location');
+            const tempText = document.getElementById('widget-temp');
+            const descText = document.getElementById('widget-desc');
+            const iconWrap = document.getElementById('widget-icon');
+
+            if (!apiKey) {
+                locText.textContent = "날씨 연동 대기";
+                tempText.textContent = "--°C";
+                descText.textContent = "설정에서 API Key를 입력하세요.";
+                return;
+            }
+
+            locText.textContent = `${city} 로딩 중`;
+
+            try {
+                // 1. Fetch current weather in English (no lang=kr parameter to avoid weird Korean translations)
+                const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
+                const weatherRes = await fetch(weatherUrl);
+                
+                if (!weatherRes.ok) throw new Error("날씨 호출 불가");
+                const weatherData = await weatherRes.json();
+
+                const temp = Math.round(weatherData.main.temp);
+                const humidity = weatherData.main.humidity;
+                const condition = weatherData.weather[0].main;
+                const desc = weatherData.weather[0].description; // English weather description (e.g. overcast clouds)
+                const weatherIcon = weatherData.weather[0].icon;
+
+                locText.textContent = weatherData.name;
+                tempText.textContent = `${temp}°C`;
+                descText.textContent = `${desc}`; // Keep description raw English
+
+                // Inject data to outdoor labels
+                document.getElementById('lbl-temp').textContent = temp;
+                document.getElementById('lbl-humi').textContent = humidity;
+
+                iconWrap.innerHTML = getWeatherIconSVG(weatherIcon);
+
+                let isRainy = ['Rain', 'Thunderstorm', 'Drizzle'].includes(condition);
+                let isHighPollution = false;
+
+                // 2. Air Pollution check (Translated text combined in Korean)
+                try {
+                    const lat = weatherData.coord.lat;
+                    const lon = weatherData.coord.lon;
+                    const airUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`;
+                    const airRes = await fetch(airUrl);
+                    if (airRes.ok) {
+                        const airData = await airRes.json();
+                        const pm25 = airData.list[0].components.pm2_5;
+                        const aqi = airData.list[0].main.aqi;
+
+                        if (pm25 > 35 || aqi >= 3) {
+                            isHighPollution = true;
+                            descText.textContent += ` | 미세먼지 나쁨`;
+                        } else {
+                            descText.textContent += ` | 미세먼지 좋음`;
+                        }
+                    }
+                } catch (e) {
+                    console.warn("대기 정보 로드 불가:", e);
+                }
+
+                // 3. Automated Blind controls based on Weather status
+                if (weatherSettings.autoEnabled) {
+                    if (isRainy) {
+                        logTerminal('SYS', '🌧️ 기상 감시: 비가 내리고 있어 블라인드를 자동으로 닫았습니다.');
+                        sendCommand('6');
+                    } else if (isHighPollution) {
+                        logTerminal('SYS', '😷 기상 감시: 미세먼지가 탁하여 블라인드를 자동으로 닫았습니다.');
+                        sendCommand('6');
+                    } else {
+                        logTerminal('SYS', '☀️ 기상 감시: 기상이 쾌청하여 블라인드를 열어 채광을 켭니다.');
+                        sendCommand('5');
+                    }
+                }
+
+            } catch (err) {
+                console.error(err);
+                locText.textContent = "연동 실패";
+                descText.textContent = "네트워크 혹은 API Key 오류.";
+            }
+        }
+
+        function getWeatherIconSVG(iconCode) {
+            let d = "M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1z";
+            if (iconCode.startsWith('09') || iconCode.startsWith('10') || iconCode.startsWith('11')) {
+                d = "M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-2 2v-4h-2v4l-2-2v-2H9v4l-3-3v5h13v-5z";
+            } else if (iconCode.startsWith('02') || iconCode.startsWith('03') || iconCode.startsWith('04') || iconCode.startsWith('50')) {
+                d = "M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z";
+            }
+            return `<svg viewBox="0 0 24 24"><path d="${d}"/></svg>`;
+        }
+
+        // Formatting utilities
+        function getFormattedDate(d) {
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        // Render monthly calendar
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-grid');
+            const headerTitle = document.getElementById('calendar-month-year');
+            grid.innerHTML = "";
+
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            headerTitle.textContent = `${year}년 ${month + 1}월`;
+
+            const daysOfWeek = ['일', '월', '화', '수', '목', '금', '토'];
+            daysOfWeek.forEach(day => {
+                const el = document.createElement('div');
+                el.className = 'day-header';
+                el.textContent = day;
+                grid.appendChild(el);
+            });
+
+            const firstDayIndex = new Date(year, month, 1).getDay();
+            const totalDays = new Date(year, month + 1, 0).getDate();
+
+            for (let i = 0; i < firstDayIndex; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'day-cell empty';
+                grid.appendChild(emptyCell);
+            }
+
+            const todayStr = getFormattedDate(new Date());
+
+            for (let day = 1; day <= totalDays; day++) {
+                const dateObj = new Date(year, month, day);
+                const dateKey = getFormattedDate(dateObj);
+                
+                const cell = document.createElement('div');
+                cell.className = 'day-cell';
+                if (dateKey === todayStr) {
+                    cell.classList.add('today');
+                }
+
+                const numLabel = document.createElement('span');
+                numLabel.textContent = day;
+                cell.appendChild(numLabel);
+
+                const dotsContainer = document.createElement('div');
+                dotsContainer.className = 'med-dots-container';
+
+                const record = medRecords[dateKey] || { morning: false, lunch: false, dinner: false };
+
+                const dotM = document.createElement('span');
+                dotM.className = 'med-dot';
+                if (record.morning) dotM.classList.add('morning-done');
+                dotsContainer.appendChild(dotM);
+
+                const dotL = document.createElement('span');
+                dotL.className = 'med-dot';
+                if (record.lunch) dotL.classList.add('lunch-done');
+                dotsContainer.appendChild(dotL);
+
+                const dotD = document.createElement('span');
+                dotD.className = 'med-dot';
+                if (record.dinner) dotD.classList.add('dinner-done');
+                dotsContainer.appendChild(dotD);
+
+                cell.appendChild(dotsContainer);
+                grid.appendChild(cell);
+            }
+        }
+
+        function prevMonth() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        }
+
+        function nextMonth() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        }
+
+        // Today UI sync
+        function updateMedSummaryToday() {
+            const todayStr = getFormattedDate(new Date());
+            const record = medRecords[todayStr] || { morning: false, lunch: false, dinner: false };
+
+            updateCardState('morning', record.morning);
+            updateCardState('lunch', record.lunch);
+            updateCardState('dinner', record.dinner);
+        }
+
+        function updateCardState(timeOfDay, isCompleted) {
+            const card = document.getElementById(`summary-${timeOfDay}`);
+            const badge = document.getElementById(`badge-${timeOfDay}`);
+            
+            if (isCompleted) {
+                card.classList.add('completed');
+                badge.textContent = "복용완료";
+            } else {
+                card.classList.remove('completed');
+                badge.textContent = "미복용";
+            }
+        }
+
+        // Medication Overdue Engine
+        function checkMedicationDeadlines() {
+            const now = new Date();
+            const todayStr = getFormattedDate(now);
+
+            // Initialize alerted tracking for today
+            if (!alertedDays[todayStr]) {
+                alertedDays[todayStr] = { morning: false, lunch: false, dinner: false };
+            }
+
+            const currentH = now.getHours();
+            const currentM = now.getMinutes();
+            const currentTotalMin = currentH * 60 + currentM;
+
+            const parseTimeToMinutes = (timeStr) => {
+                const parts = timeStr.split(':');
+                if (parts.length !== 2) return 0;
+                return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+            };
+
+            const morningLimit = parseTimeToMinutes(medDeadlines.morning);
+            const lunchLimit = parseTimeToMinutes(medDeadlines.lunch);
+            const dinnerLimit = parseTimeToMinutes(medDeadlines.dinner);
+
+            const record = medRecords[todayStr] || { morning: false, lunch: false, dinner: false };
+
+            // 1. Morning medication deadline exceeded
+            if (currentTotalMin > morningLimit && !record.morning && !alertedDays[todayStr].morning) {
+                alertedDays[todayStr].morning = true;
+                localStorage.setItem('alerted_days_v1', JSON.stringify(alertedDays));
+                triggerEmergency(`아침 복약 마감 시간 초과! (설정 시간: ${medDeadlines.morning})`);
+            }
+
+            // 2. Lunch medication deadline exceeded
+            if (currentTotalMin > lunchLimit && !record.lunch && !alertedDays[todayStr].lunch) {
+                alertedDays[todayStr].lunch = true;
+                localStorage.setItem('alerted_days_v1', JSON.stringify(alertedDays));
+                triggerEmergency(`점심 복약 마감 시간 초과! (설정 시간: ${medDeadlines.lunch})`);
+            }
+
+            // 3. Dinner medication deadline exceeded
+            if (currentTotalMin > dinnerLimit && !record.dinner && !alertedDays[todayStr].dinner) {
+                alertedDays[todayStr].dinner = true;
+                localStorage.setItem('alerted_days_v1', JSON.stringify(alertedDays));
+                triggerEmergency(`저녁 복약 마감 시간 초과! (설정 시간: ${medDeadlines.dinner})`);
+            }
+        }
+
+        // Emergency Overlay Warning triggers
+        function triggerEmergency(reason, isRemote = false) {
+            document.getElementById('emergency-message').textContent = reason;
+            document.getElementById('emergency-overlay').classList.add('active');
+            logTerminal('ERR', `[비상 경보] 비상 경보가 발령되었습니다: ${reason}`);
+            startEmergencyBeeps();
+
+            // Firebase push sync if patient/gateway mode and NOT triggered by remote to prevent loops
+            if (!isRemote) {
+                uploadEmergencyToFirebase(true, reason);
+            }
+        }
+
+        function dismissEmergency(isRemoteBypass = false) {
+            document.getElementById('emergency-overlay').classList.remove('active');
+            stopEmergencyBeeps();
+            logTerminal('SYS', '[비상 경보] 비상 상황 경보 오버레이가 해제되었습니다.');
+
+            // Sync dismissal back to Firebase database
+            if (!isRemoteBypass) {
+                uploadEmergencyToFirebase(false);
+            }
+        }
+
+        // Web Audio API siren synthesis
+        function startEmergencyBeeps() {
+            if (beepInterval) return;
+
+            const playBeepNode = () => {
+                try {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+
+                    osc.type = "sawtooth"; // buzzer-like wave
+                    osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+
+                    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+
+                    osc.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.5);
+                } catch (err) {
+                    console.warn("AudioContext 재생 오류:", err);
+                }
+            };
+
+            playBeepNode();
+            beepInterval = setInterval(playBeepNode, 800);
+        }
+
+        function stopEmergencyBeeps() {
+            if (beepInterval) {
+                clearInterval(beepInterval);
+                beepInterval = null;
+            }
+        }
+    </script>
+</body>
+</html>
