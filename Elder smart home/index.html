@@ -1363,8 +1363,8 @@
                             <div class="setting-field" style="margin-bottom: 0;">
                                 <label for="select-user-mode" style="font-size: 10px;">사용 모드</label>
                                 <select id="select-user-mode" onchange="onUserModeChange()" style="padding: 8px; font-size: 12px; height: 38px;">
-                                    <option value="patient" selected>환자 / 게이트웨이 모드 (기기 연동용)</option>
-                                    <option value="protector">보호자 모니터링 뷰어 모드 (기기 연결 없음)</option>
+                                    <option value="patient" selected>사용자 모드 (기기 직접 연동)</option>
+                                    <option value="protector">보호자 모니터링 모드 (원격 모니터링)</option>
                                 </select>
                             </div>
                             <div class="setting-field" style="margin-bottom: 0;">
@@ -1381,7 +1381,7 @@
                                     <input type="text" id="input-fb-project" placeholder="your-project-id" style="padding: 8px; font-size: 12px; height: 38px;">
                                 </div>
                                 <div class="setting-field" style="flex: 1; margin-bottom: 0;">
-                                    <label for="input-fb-device" style="font-size: 10px;">기기 ID (환자식별)</label>
+                                    <label for="input-fb-device" style="font-size: 10px;">기기 ID (사용자 식별)</label>
                                     <input type="text" id="input-fb-device" placeholder="elder_1" style="padding: 8px; font-size: 12px; height: 38px;" value="elder_1">
                                 </div>
                             </div>
@@ -1679,7 +1679,7 @@
             databaseURL: "",
             projectId: "",
             deviceId: "elder_1",
-            userMode: "patient" // "patient" (환자/게이트웨이) 또는 "protector" (보호자 모니터링)
+            userMode: "patient" // "patient" (사용자/게이트웨이) 또는 "protector" (보호자 모니터링)
         };
         let fbApp = null;
         let fbDatabase = null;
