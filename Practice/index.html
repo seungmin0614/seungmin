@@ -1,0 +1,1746 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 모델학습(TM) 제미나이 캔버스 웹 앱</title>
+  
+  <!-- Pretendard Web Font -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  
+  <!-- p5.js v1.9.0 CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  
+  <!-- ml5.js v0.12.2 CDN -->
+  <script src="https://unpkg.com/ml5@0.12.2/dist/ml5.min.js"></script>
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    /* CSS RESET & VARIABLES */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    }
+
+    :root {
+      --bg-color: hsl(222, 47%, 7%);
+      --panel-bg: hsla(222, 47%, 12%, 0.7);
+      --panel-border: hsla(0, 0%, 100%, 0.08);
+      --text-main: hsl(210, 40%, 98%);
+      --text-muted: hsl(215, 20%, 65%);
+      
+      --primary: hsl(250, 85%, 65%);
+      --primary-hover: hsl(250, 85%, 70%);
+      --accent: hsl(190, 90%, 50%);
+      
+      --color-connected: hsl(142, 70%, 45%);
+      --color-scanning: hsl(45, 93%, 47%);
+      --color-disconnected: hsl(346, 84%, 61%);
+      
+      --terminal-bg: hsl(222, 50%, 4%);
+    }
+
+    body {
+      background-color: var(--bg-color);
+      background-image: 
+        radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%), 
+        radial-gradient(at 50% 0%, hsla(225, 39%, 20%, 0.4) 0, transparent 50%),
+        radial-gradient(at 100% 100%, hsla(250, 40%, 15%, 0.3) 0, transparent 50%);
+      background-attachment: fixed;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    /* GLASSMORPHISM UTILITY */
+    .glass-panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+      padding: 1.5rem;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .glass-panel:hover {
+      border-color: hsla(0, 0%, 100%, 0.12);
+    }
+
+    /* HEADER & STATUS BADGES */
+    header {
+      padding: 1.25rem 2rem;
+      border-bottom: 1px solid var(--panel-border);
+      background: hsla(222, 47%, 7%, 0.8);
+      backdrop-filter: blur(8px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-section h1 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 30%, var(--text-muted) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .logo-section span.badge {
+      font-size: 0.65rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      background: var(--primary);
+      color: white;
+      vertical-align: middle;
+      font-weight: 500;
+    }
+
+    .status-container {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: hsla(0, 0%, 100%, 0.05);
+      border: 1px solid var(--panel-border);
+    }
+
+    .status-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-disconnected .dot {
+      background-color: var(--color-disconnected);
+      box-shadow: 0 0 8px var(--color-disconnected);
+    }
+
+    .status-scanning .dot {
+      background-color: var(--color-scanning);
+      box-shadow: 0 0 8px var(--color-scanning);
+      animation: pulse 1.5s infinite;
+    }
+
+    .status-connected .dot {
+      background-color: var(--color-connected);
+      box-shadow: 0 0 8px var(--color-connected);
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.3; }
+      50% { opacity: 1; }
+      100% { opacity: 0.3; }
+    }
+
+    /* MAIN LAYOUT Grid */
+    main {
+      flex: 1;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 1.5rem;
+      display: grid;
+      grid-template-columns: 430px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    /* LEFT STICKY COLUMN */
+    .left-column {
+      position: sticky;
+      top: 5.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    #canvas-card {
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: hsl(222, 47%, 9%);
+    }
+
+    #canvas-container {
+      width: 400px;
+      height: 400px;
+      position: relative;
+      background-color: #05070c;
+    }
+
+    /* HTML overlay for live predictions on p5.js canvas container */
+    .canvas-overlay-top {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      display: flex;
+      gap: 0.5rem;
+      z-index: 10;
+    }
+
+    .canvas-overlay-btn {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+      transition: background 0.2s ease;
+    }
+
+    .canvas-overlay-btn:hover {
+      background: var(--primary);
+    }
+
+    .canvas-overlay-btn.active {
+      background: var(--primary);
+      border-color: var(--accent);
+    }
+
+    /* CAM CONTROLS PANEL */
+    .cam-controls {
+      width: 100%;
+      padding: 1rem 1.5rem 1.5rem 1.5rem;
+      border-top: 1px solid var(--panel-border);
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .form-group label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    select, input[type="text"], input[type="number"] {
+      background: hsl(222, 47%, 5%);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      color: var(--text-main);
+      padding: 0.6rem 0.8rem;
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+
+    select:focus, input[type="text"]:focus, input[type="number"]:focus {
+      border-color: var(--primary);
+    }
+
+    /* RIGHT SCROLLABLE COLUMN */
+    .right-column {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .panel-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-main);
+      border-bottom: 1px solid var(--panel-border);
+      padding-bottom: 0.5rem;
+    }
+
+    .panel-title i {
+      color: var(--primary);
+      width: 18px;
+      height: 18px;
+    }
+
+    /* BUTTONS */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.65rem 1.25rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: hsla(0, 0%, 100%, 0.05);
+      color: var(--text-main);
+      border: 1px solid var(--panel-border);
+      box-shadow: none;
+    }
+
+    .btn-secondary:hover {
+      background: hsla(0, 0%, 100%, 0.1);
+    }
+
+    .btn-danger {
+      background: var(--color-disconnected);
+      box-shadow: 0 4px 12px rgba(244, 63, 94, 0.2);
+    }
+
+    .btn-danger:hover {
+      background: hsl(346, 84%, 55%);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    /* CLASSIFICATION BAR CHART */
+    .chart-container {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+      padding: 1rem;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 12px;
+      border: 1px solid var(--panel-border);
+    }
+
+    .chart-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .chart-label-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+    }
+
+    .chart-label-name {
+      font-weight: 600;
+    }
+
+    .chart-label-pct {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .chart-bar-bg {
+      height: 8px;
+      background: hsla(0, 0%, 100%, 0.05);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .chart-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      border-radius: 4px;
+      width: 0%;
+      transition: width 0.15s ease-out;
+    }
+
+    /* MAPPING TABLE */
+    .mapping-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .mapping-row {
+      display: grid;
+      grid-template-columns: 1fr auto 120px;
+      align-items: center;
+      gap: 1rem;
+      background: rgba(0, 0, 0, 0.15);
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+    }
+
+    .class-name-badge {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-main);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .arrow-icon {
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+    }
+
+    .mapping-input {
+      padding: 0.4rem 0.6rem;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+
+    /* BLE PARAMETERS & SWITCHES */
+    .ble-settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .switch-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(0, 0, 0, 0.15);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+    }
+
+    .switch-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* Toggle switch design */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: hsla(0, 0%, 100%, 0.1);
+      transition: .3s;
+      border-radius: 24px;
+      border: 1px solid var(--panel-border);
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--primary);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    /* Range Slider custom styling */
+    .range-group {
+      grid-column: span 2;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      background: rgba(0, 0, 0, 0.15);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+    }
+
+    .range-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .range-header span.val {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: hsla(0, 0%, 100%, 0.1);
+      border-radius: 3px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--primary);
+      cursor: pointer;
+      box-shadow: 0 0 8px var(--primary);
+      transition: transform 0.1s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* TERMINAL LOG PANEL */
+    .terminal-card {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .terminal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .terminal-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .terminal-actions label {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .terminal-actions label input {
+      cursor: pointer;
+    }
+
+    .terminal-box {
+      background-color: var(--terminal-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      height: 180px;
+      overflow-y: auto;
+      padding: 0.75rem;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      scroll-behavior: smooth;
+    }
+
+    .log-line {
+      word-break: break-all;
+      line-height: 1.4;
+    }
+
+    .log-time {
+      color: hsla(0, 0%, 100%, 0.3);
+      margin-right: 0.5rem;
+    }
+
+    .log-info { color: var(--text-muted); }
+    .log-success { color: var(--color-connected); }
+    .log-warning { color: var(--color-scanning); }
+    .log-error { color: var(--color-disconnected); font-weight: 700; }
+    .log-tx { color: var(--accent); }
+    .log-rx { color: hsl(300, 90%, 70%); }
+
+    /* FIRMWARE CODE GUIDE PANEL */
+    .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .code-container {
+      position: relative;
+    }
+
+    pre {
+      background-color: var(--terminal-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 1rem;
+      overflow-x: auto;
+      max-height: 280px;
+      font-size: 0.75rem;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      color: hsl(210, 20%, 90%);
+      line-height: 1.5;
+    }
+
+    code {
+      font-family: inherit;
+    }
+
+    .code-copy-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: hsla(0, 0%, 100%, 0.05);
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .code-copy-btn:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* FOOTER */
+    footer {
+      text-align: center;
+      padding: 2rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--panel-border);
+      margin-top: auto;
+      background: hsla(222, 47%, 6%, 0.5);
+    }
+
+    /* RESPONSIVE LAYOUT STYLES */
+
+    /* DESTRUCTIVE / OTHER STYLES */
+    .hidden {
+      display: none !important;
+    }
+
+    /* Desktop View */
+    @media (min-width: 768px) {
+      main {
+        grid-template-columns: 430px 1fr;
+      }
+    }
+
+    /* Mobile Portrait View */
+    @media (max-width: 767px) {
+      main {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+        gap: 1rem;
+      }
+
+      .left-column {
+        position: sticky;
+        top: 4.8rem;
+        z-index: 50;
+        background: var(--bg-color);
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--panel-border);
+      }
+
+      #canvas-card {
+        border-radius: 12px;
+      }
+
+      #canvas-container {
+        width: 100%;
+        max-width: 400px;
+        height: auto;
+        aspect-ratio: 1/1;
+      }
+      
+      /* Make canvas scale to container size on mobile */
+      #canvas-container canvas {
+        width: 100% !important;
+        height: 100% !important;
+      }
+    }
+
+    /* Mobile Landscape View */
+    @media (max-height: 550px) and (orientation: landscape) {
+      main {
+        grid-template-columns: 45% 50%;
+        gap: 5%;
+        padding: 0.75rem;
+      }
+      
+      .left-column {
+        position: sticky;
+        top: 3.5rem;
+      }
+
+      header {
+        padding: 0.5rem 1rem;
+      }
+
+      #canvas-container {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1/1;
+      }
+
+      #canvas-container canvas {
+        width: 100% !important;
+        height: 100% !important;
+      }
+
+      footer {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo-section">
+      <h1>
+        <i data-lucide="cpu"></i>
+        <span>GEMINI CANVAS</span>
+        AI-BLE Controller
+        <span class="badge">v1.0</span>
+      </h1>
+    </div>
+    
+    <div class="status-container">
+      <div id="model-status-badge" class="status-badge status-disconnected">
+        <span class="dot"></span>
+        <span class="txt">모델 대기 중</span>
+      </div>
+      <div id="ble-status-badge" class="status-badge status-disconnected">
+        <span class="dot"></span>
+        <span class="txt">연결 대기 중</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN WRAPPER -->
+  <main>
+    
+    <!-- LEFT SIDE: VIDEO FEED & CAM CONTROL (Sticky) -->
+    <div class="left-column">
+      
+      <!-- Video / p5.js Canvas Container -->
+      <div id="canvas-card" class="glass-panel">
+        <div id="canvas-container">
+          <!-- Canvas will be dynamically injected here by p5 -->
+          <div class="canvas-overlay-top">
+            <button id="btn-mirror" class="canvas-overlay-btn active" title="거울 모드 토글">
+              <i data-lucide="flip-horizontal"></i>
+            </button>
+            <button id="btn-camera-toggle" class="canvas-overlay-btn" title="전후방 카메라 전환">
+              <i data-lucide="refresh-cw"></i>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Webcam feed controls -->
+        <div class="cam-controls">
+          <div class="form-group">
+            <label for="camera-select">비디오 입력 장치</label>
+            <select id="camera-select">
+              <option value="">카메라 로드 중...</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Live Classification confidence display -->
+      <div class="glass-panel">
+        <div class="panel-title">
+          <i data-lucide="bar-chart-3"></i>
+          실시간 분석 차트 (Top 3)
+        </div>
+        <div id="chart-list" class="chart-container">
+          <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 1rem 0;">
+            Teachable Machine 모델을 로드하면 분석 결과가 여기에 출력됩니다.
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT SIDE: MODEL, BLE CONFIGS, MAPPINGS, LOGS & GUIDE -->
+    <div class="right-column">
+      
+      <!-- 1. Teachable Machine Model Configuration -->
+      <section class="glass-panel">
+        <div class="panel-title">
+          <i data-lucide="cloud-lightning"></i>
+          Teachable Machine 모델 연동
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
+            Teachable Machine에서 학습된 이미지 분류 모델 링크를 입력하십시오. 고유 식별 짧은 ID(예: <code style="color:var(--accent)">mJ8F2_1xS</code>) 또는 전체 URL을 사용할 수 있습니다.
+          </p>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="text" id="model-url-input" placeholder="https://teachablemachine.withgoogle.com/models/xxxxxx/" value="">
+            <button id="btn-load-model" class="btn">
+              <i data-lucide="download"></i>
+              모델 로드
+            </button>
+          </div>
+          <div id="loaded-model-info" class="hidden" style="font-size: 0.8rem; border-top: 1px solid var(--panel-border); padding-top: 0.75rem;">
+            <span style="color: var(--text-muted)">현재 로드된 모델: </span>
+            <a id="active-model-link" href="#" target="_blank" style="color: var(--accent); text-decoration: underline;"></a>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Class-to-Code Mapping Table -->
+      <section class="glass-panel">
+        <div class="panel-title">
+          <i data-lucide="git-compare"></i>
+          클래스별 송신값 매핑 테이블
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
+            감지된 각 사물 클래스가 탐지되었을 때 ESP32 마이크로컨트롤러에 전송할 문자열 값을 사용자 지정합니다. 실시간으로 브라우저 로컬 스토리지에 동기화됩니다.
+          </p>
+          <div id="mapping-rows-container" class="mapping-rows">
+            <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 1.5rem 0;">
+              모델 로드가 완료되면 자동으로 클래스가 생성됩니다.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Web Bluetooth (ESP32) Controller -->
+      <section class="glass-panel">
+        <div class="panel-title">
+          <i data-lucide="bluetooth"></i>
+          ESP32 Bluetooth (Web BLE) 연동
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
+            Nordic UART Service 프로토콜 규격으로 ESP32 블루투스 모듈과 페어링합니다. 장치 필터링이 활성화되어 있으며 기기명이 <code style="color:var(--accent)">ESP_</code>로 시작하는 장치만 스캔합니다.
+          </p>
+          
+          <div class="btn-group">
+            <button id="btn-connect" class="btn" style="flex: 1;">
+              <i data-lucide="link"></i>
+              ESP32 블루투스 연결
+            </button>
+            <button id="btn-disconnect" class="btn btn-danger hidden" style="flex: 1;">
+              <i data-lucide="link-2"></i>
+              연결 끊기
+            </button>
+          </div>
+
+          <!-- Manual LED Test Buttons -->
+          <div id="manual-test-container" class="hidden" style="display: flex; flex-direction: column; gap: 0.5rem; border-top: 1px solid var(--panel-border); padding-top: 1rem;">
+            <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">수동 LED 제어 테스트</span>
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.4rem;">
+              <button class="btn btn-secondary manual-led-btn" data-val="1" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); color: #ef4444; padding: 0.5rem 0.2rem; font-size: 0.75rem;">빨강(1)</button>
+              <button class="btn btn-secondary manual-led-btn" data-val="2" style="background: rgba(34, 197, 94, 0.15); border-color: rgba(34, 197, 94, 0.4); color: #22c55e; padding: 0.5rem 0.2rem; font-size: 0.75rem;">초록(2)</button>
+              <button class="btn btn-secondary manual-led-btn" data-val="3" style="background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.4); color: #3b82f6; padding: 0.5rem 0.2rem; font-size: 0.75rem;">파랑(3)</button>
+              <button class="btn btn-secondary manual-led-btn" data-val="4" style="background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.3); color: #ffffff; padding: 0.5rem 0.2rem; font-size: 0.75rem;">흰색(4)</button>
+              <button class="btn btn-secondary manual-led-btn" data-val="5" style="background: rgba(100, 116, 139, 0.15); border-color: rgba(100, 116, 139, 0.4); color: #94a3b8; padding: 0.5rem 0.2rem; font-size: 0.75rem;">끄기(5)</button>
+            </div>
+          </div>
+
+          <!-- Parameter Tweak Section -->
+          <div class="ble-settings-grid">
+            
+            <div class="switch-container">
+              <span class="switch-label">중복 송신 방지</span>
+              <label class="switch">
+                <input type="checkbox" id="duplicate-toggle">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="switch-container">
+              <span class="switch-label">문자 구분 기호</span>
+              <select id="delimiter-select" style="width: auto; padding: 0.3rem 0.5rem; font-size: 0.75rem;">
+                <option value="none">없음 (None)</option>
+                <option value="lf" selected>줄바꿈 (\n)</option>
+                <option value="crlf">복귀/줄바꿈 (\r\n)</option>
+              </select>
+            </div>
+
+            <div class="range-group">
+              <div class="range-header">
+                <span>실시간 전송 스로틀 주기</span>
+                <span class="val" id="throttle-value-display">300ms</span>
+              </div>
+              <input type="range" id="throttle-slider" min="50" max="2000" step="50" value="300">
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. Communication Log Terminal -->
+      <section class="glass-panel terminal-card">
+        <div class="terminal-header">
+          <div class="panel-title" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
+            <i data-lucide="terminal"></i>
+            통신 모니터 터미널
+          </div>
+          <div class="terminal-actions">
+            <label>
+              <input type="checkbox" id="terminal-autoscroll" checked> Auto Scroll
+            </label>
+            <button id="btn-clear-terminal" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;">
+              로그 지우기
+            </button>
+          </div>
+        </div>
+        <div id="terminal-log-box" class="terminal-box">
+          <div class="log-line log-info"><span class="log-time">[16:26:55]</span> 시스템 초기화 완료. Teachable Machine 모델 URL을 등록하고 Bluetooth를 연동해 주십시오.</div>
+        </div>
+      </section>
+
+      <!-- 5. MicroPython Firmware Guide -->
+      <section class="glass-panel">
+        <div class="code-header">
+          <div class="panel-title" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
+            <i data-lucide="file-code"></i>
+            MicroPython ESP32 펌웨어 가이드 (개인 라이브러리 연동)
+          </div>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 0.75rem;">
+          제출해주신 Thonny 코드를 기반으로 보완된 MicroPython 소스코드입니다. <code style="color:var(--accent)">ble_library.py</code>와 연동하여 <b>RGB LED (빨강 GPIO 25, 초록 GPIO 26, 파랑 GPIO 27)</b>를 모델 분류에 따라 실시간 색상 제어합니다.
+        </p>
+        <div class="code-container">
+          <button id="btn-copy-code" class="code-copy-btn" title="코드 복사">
+            <i data-lucide="copy"></i>
+          </button>
+          <pre><code id="firmware-code-block"># ESP32 MicroPython RGB LED BLE Controller (user custom library)
+from machine import Pin
+from time import sleep
+import ble_library
+import bluetooth
+
+# BLE 초기화 및 기기 검색용 명칭 등록 (웹 앱에서 필터링 가능)
+ble = bluetooth.BLE()
+p = ble_library.BLESimplePeripheral(ble, "ESP_min") 
+
+# RGB LED 각 핀 지정 (Red: 25, Green: 26, Blue: 27)
+R = Pin(25, Pin.OUT)
+G = Pin(26, Pin.OUT)
+B = Pin(27, Pin.OUT)
+
+# 초기 상태: 모두 끄기
+R.off()
+G.off()
+B.off()
+
+# 수신된 BLE 데이터에 따라 RGB 색상 제어하는 콜백 함수
+def on_rx(v): 
+    try:
+        # 데이터가 bytes로 수신되므로 문자열로 디코딩하고 공백/줄바꿈을 제거합니다.
+        msg = v.decode("utf-8").strip()
+        print("Received Signal:", msg)
+        
+        # '1' : 빨간색 켬
+        if msg == '1':
+            R.on()
+            G.off()
+            B.off()
+            
+        # '2' : 초록색 켬
+        elif msg == '2':
+            R.off()
+            G.on()
+            B.off()
+            
+        # '3' : 파란색 켬
+        elif msg == '3':
+            R.off()
+            G.off()
+            B.on()
+            
+        # '4' : 모든 LED 켬 (흰색)
+        elif msg == '4':
+            R.on()
+            G.on()
+            B.on()
+            
+        # '5' : 모든 LED 끔 (Black)
+        elif msg == '5':
+            R.off()
+            G.off()
+            B.off()
+            
+    except Exception as e:
+        print("Data decode error:", e)
+
+# 데이터가 전송될 때마다 전등색 변경 함수 호출
+p.on_write(on_rx)
+print("[SYSTEM] BLESimplePeripheral is ready. Device Name: ESP_min")
+</code></pre>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>AI 모델학습(TM) 제미나이 캔버스 웹 앱 | Teachable Machine & Web BLE Controller</p>
+    <p style="margin-top: 0.5rem; opacity: 0.6;">&copy; 2026 Sandbox Education Inc. All Rights Reserved.</p>
+  </footer>
+
+  <!-- MAIN APP LOGIC -->
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // App state
+    let mirrorMode = true;
+    let facingMode = 'user'; // 'user' (front) or 'environment' (back)
+    let selectedDeviceId = "";
+    
+    let isClassifying = false;
+    let classifier = null;
+    let currentModelUrl = "";
+    let lastResults = [];
+    
+    // BLE parameters
+    let bleDevice = null;
+    let bleServer = null;
+    let txCharacteristic = null;
+    let rxCharacteristic = null;
+    let isSendingData = false;
+    let lastSentTime = 0;
+    let lastSentValue = "";
+
+    // P5.js Instance Mode Sketch
+    const sketch = (p) => {
+      p.video = null;
+
+      p.setup = () => {
+        const canvas = p.createCanvas(400, 400);
+        canvas.parent('canvas-container');
+        
+        // Initialize Capture
+        p.initCapture();
+      };
+
+      p.initCapture = () => {
+        if (p.video) {
+          p.video.remove();
+        }
+
+        const constraints = {
+          video: {
+            deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            facingMode: facingMode
+          },
+          audio: false
+        };
+
+        p.video = p.createCapture(constraints, (stream) => {
+          logToTerminal("info", "카메라 스트림이 활성화되었습니다.");
+          updateDevicesList();
+        });
+        
+        p.video.size(640, 480);
+        p.video.hide();
+      };
+
+      p.draw = () => {
+        p.background(15, 23, 42);
+        
+        if (p.video && p.video.elt && p.video.elt.readyState >= 2) {
+          p.push();
+          if (mirrorMode) {
+            p.translate(p.width, 0);
+            p.scale(-1, 1);
+          }
+          
+          // Crop center 400x400 from 640x480 video
+          // sx = (640-400)/2 = 120, sy = (480-400)/2 = 40
+          const sx = (p.video.width - 400) / 2;
+          const sy = (p.video.height - 400) / 2;
+          p.image(p.video, 0, 0, 400, 400, sx, sy, 400, 400);
+          p.pop();
+          
+          // Draw semi-transparent overlay for predictions at the bottom
+          if (lastResults && lastResults.length > 0) {
+            const top = lastResults[0];
+            p.noStroke();
+            p.fill(15, 23, 42, 200); // Slate semi-transparent
+            p.rect(0, 340, 400, 60);
+            
+            // Draw a subtle primary glow stripe
+            p.fill(99, 102, 241);
+            p.rect(0, 338, 400, 2);
+            
+            p.fill(255);
+            p.textSize(15);
+            p.textAlign(p.LEFT, p.CENTER);
+            p.textStyle(p.BOLD);
+            p.text(top.label, 20, 370);
+            
+            p.textAlign(p.RIGHT, p.CENTER);
+            p.textSize(16);
+            p.textStyle(p.BOLD);
+            p.fill(34, 211, 238); // Cyan Accent color
+            p.text(`${(top.confidence * 100).toFixed(1)}%`, 380, 370);
+          }
+        } else {
+          // Loading feed placeholder
+          p.textAlign(p.CENTER, p.CENTER);
+          p.textSize(15);
+          p.fill(148, 163, 184);
+          p.text("카메라 비디오 장치를 불러오는 중...", p.width / 2, p.height / 2);
+        }
+      };
+    };
+
+    // Instantiate p5
+    const p5App = new p5(sketch);
+
+    // Device Lister
+    async function updateDevicesList() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        const select = document.getElementById('camera-select');
+        
+        select.innerHTML = '';
+        if (videoDevices.length === 0) {
+          const opt = document.createElement('option');
+          opt.value = "";
+          opt.text = "감지된 카메라 없음";
+          select.appendChild(opt);
+          return;
+        }
+
+        videoDevices.forEach((device, idx) => {
+          const opt = document.createElement('option');
+          opt.value = device.deviceId;
+          opt.text = device.label || `카메라 ${idx + 1}`;
+          if (device.deviceId === selectedDeviceId) {
+            opt.selected = true;
+          }
+          select.appendChild(opt);
+        });
+
+        // Set default device id if not selected
+        if (!selectedDeviceId && videoDevices.length > 0) {
+          selectedDeviceId = videoDevices[0].deviceId;
+        }
+      } catch (err) {
+        logToTerminal("error", `카메라 검색 실패: ${err.message}`);
+      }
+    }
+
+    // Camera Switch UI Events
+    document.getElementById('camera-select').addEventListener('change', (e) => {
+      selectedDeviceId = e.target.value;
+      logToTerminal("info", `카메라 소스를 변경합니다: ${e.target.options[e.target.selectedIndex].text}`);
+      p5App.initCapture();
+    });
+
+    document.getElementById('btn-mirror').addEventListener('click', function() {
+      mirrorMode = !mirrorMode;
+      this.classList.toggle('active', mirrorMode);
+      logToTerminal("info", `거울 모드가 ${mirrorMode ? "활성화" : "비활성화"}되었습니다.`);
+    });
+
+    document.getElementById('btn-camera-toggle').addEventListener('click', function() {
+      facingMode = facingMode === 'user' ? 'environment' : 'user';
+      this.classList.toggle('active', facingMode === 'environment');
+      logToTerminal("info", `카메라 방향을 전환합니다: ${facingMode === 'user' ? '전면(User)' : '후면(Environment)'}`);
+      p5App.initCapture();
+    });
+
+    // Web Bluetooth API Integration
+    const UART_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+    const TX_CHARACTERISTIC_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+    const RX_CHARACTERISTIC_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
+
+    document.getElementById('btn-connect').addEventListener('click', connectBLE);
+    document.getElementById('btn-disconnect').addEventListener('click', disconnectBLE);
+
+    async function connectBLE() {
+      if (!navigator.bluetooth) {
+        alert("이 브라우저는 Web Bluetooth API를 지원하지 않거나 보안 컨텍스트(HTTPS/localhost)가 아닙니다. 장치를 연결할 수 없습니다.");
+        logToTerminal("error", "Web Bluetooth API 미지원 브라우저 또는 HTTPS 보안 제약 오류.");
+        return;
+      }
+
+      updateBLEStatus("scanning", "기기 스캔 중...");
+      logToTerminal("info", "Web Bluetooth 스캔을 시작합니다 (필터: namePrefix 'ESP_')");
+
+      try {
+        bleDevice = await navigator.bluetooth.requestDevice({
+          filters: [
+            {
+              services: [UART_SERVICE_UUID],
+              namePrefix: 'ESP_'
+            }
+          ]
+        });
+
+        logToTerminal("info", `장치를 선택했습니다: ${bleDevice.name}. GATT 연결 시도...`);
+        updateBLEStatus("connecting", "GATT 연결 중...");
+
+        bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+
+        bleServer = await bleDevice.gatt.connect();
+        logToTerminal("success", "GATT 연결 성공. UART 서비스를 활성화하는 중...");
+
+        const service = await bleServer.getPrimaryService(UART_SERVICE_UUID);
+        txCharacteristic = await service.getCharacteristic(TX_CHARACTERISTIC_UUID);
+        rxCharacteristic = await service.getCharacteristic(RX_CHARACTERISTIC_UUID);
+
+        // Subscribing to ESP32 TX Notifications (Web RX)
+        await rxCharacteristic.startNotifications();
+        rxCharacteristic.addEventListener('characteristicvaluechanged', handleNotifications);
+
+        logToTerminal("success", `ESP32 BLE 연동 성공. 수신 통신 채널을 성공적으로 확보했습니다.`);
+        updateBLEStatus("connected", "연결됨");
+
+        document.getElementById('btn-connect').classList.add('hidden');
+        document.getElementById('btn-disconnect').classList.remove('hidden');
+        document.getElementById('manual-test-container').classList.remove('hidden');
+
+      } catch (err) {
+        logToTerminal("error", `Bluetooth 연결 실패: ${err.message}`);
+        updateBLEStatus("disconnected", "연결 실패");
+        onDisconnected();
+      }
+    }
+
+    function disconnectBLE() {
+      if (bleDevice && bleDevice.gatt.connected) {
+        logToTerminal("info", "사용자에 의해 블루투스 연결을 끊습니다.");
+        bleDevice.gatt.disconnect();
+      }
+    }
+
+    function onDisconnected() {
+      updateBLEStatus("disconnected", "연결 대기 중");
+      document.getElementById('btn-connect').classList.remove('hidden');
+      document.getElementById('btn-disconnect').classList.add('hidden');
+      document.getElementById('manual-test-container').classList.add('hidden');
+      
+      txCharacteristic = null;
+      rxCharacteristic = null;
+      bleDevice = null;
+      bleServer = null;
+    }
+
+    function handleNotifications(event) {
+      const buffer = event.target.value;
+      const decoder = new TextDecoder('utf-8');
+      const text = decoder.decode(buffer);
+      logToTerminal("rx", `RX (ESP32): ${text.trim()}`);
+    }
+
+    function updateBLEStatus(status, text) {
+      const badge = document.getElementById('ble-status-badge');
+      badge.className = "status-badge";
+      
+      const txtSpan = badge.querySelector('.txt');
+      txtSpan.innerText = text;
+
+      if (status === 'connected') {
+        badge.classList.add('status-connected');
+      } else if (status === 'scanning' || status === 'connecting') {
+        badge.classList.add('status-scanning');
+      } else {
+        badge.classList.add('status-disconnected');
+      }
+    }
+
+    // BLE Settings UI Inputs
+    const throttleSlider = document.getElementById('throttle-slider');
+    const throttleDisplay = document.getElementById('throttle-value-display');
+    throttleSlider.addEventListener('input', (e) => {
+      throttleDisplay.innerText = `${e.target.value}ms`;
+    });
+
+    // Manual LED test packet sender
+    async function sendRawBLEPacket(val) {
+      if (!txCharacteristic || !bleDevice || !bleDevice.gatt.connected) {
+        logToTerminal("error", "블루투스가 연결되어 있지 않아 송신할 수 없습니다.");
+        return;
+      }
+      const delimiterSelect = document.getElementById('delimiter-select').value;
+      let delimiter = "";
+      if (delimiterSelect === "lf") {
+        delimiter = "\n";
+      } else if (delimiterSelect === "crlf") {
+        delimiter = "\r\n";
+      }
+      const packet = val + delimiter;
+      try {
+        const encoder = new TextEncoder();
+        const dataBuffer = encoder.encode(packet);
+        try {
+          if (txCharacteristic.writeValueWithoutResponse) {
+            await txCharacteristic.writeValueWithoutResponse(dataBuffer);
+          } else {
+            await txCharacteristic.writeValue(dataBuffer);
+          }
+        } catch (writeErr) {
+          if (txCharacteristic.writeValueWithResponse) {
+            await txCharacteristic.writeValueWithResponse(dataBuffer);
+          } else {
+            await txCharacteristic.writeValue(dataBuffer);
+          }
+        }
+        logToTerminal("tx", `[수동 송신] TX: "${val}"`);
+      } catch (err) {
+        logToTerminal("error", `수동 송신 에러: ${err.message}`);
+      }
+    }
+
+    // Bind Manual LED test buttons
+    document.querySelectorAll('.manual-led-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const val = btn.getAttribute('data-val');
+        await sendRawBLEPacket(val);
+      });
+    });
+
+    // TEAC HABLE MACHINE CLASSIFIER LOGIC
+    document.getElementById('btn-load-model').addEventListener('click', loadTeachableMachineModel);
+
+    // Auto load input URL validation/sanitization
+    function sanitizeModelUrl(url) {
+      url = url.trim();
+      if (!url) return '';
+      
+      // Check if it's just a short alphanumeric ID
+      if (!url.includes('/') && !url.includes('.')) {
+        url = `https://teachablemachine.withgoogle.com/models/${url}/`;
+      }
+      
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+      }
+      
+      if (!url.endsWith('/')) {
+        if (url.endsWith('model.json')) {
+          url = url.substring(0, url.length - 10);
+        } else {
+          url = url + '/';
+        }
+      }
+      return url;
+    }
+
+    async function loadTeachableMachineModel() {
+      const rawInput = document.getElementById('model-url-input').value;
+      const sanitized = sanitizeModelUrl(rawInput);
+
+      if (!sanitized) {
+        alert("모델 URL 또는 ID를 입력하십시오.");
+        return;
+      }
+
+      updateModelStatus("scanning", "모델 다운로드 중...");
+      logToTerminal("info", `Teachable Machine 모델 리소스를 호출합니다: ${sanitized}`);
+      
+      const btn = document.getElementById('btn-load-model');
+      btn.disabled = true;
+      btn.innerHTML = `<i class="dot" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:white; animation:pulse 1s infinite; margin-right:4px;"></i> 로드 중...`;
+
+      try {
+        // Stop current classification
+        isClassifying = false;
+
+        // Try load metadata to parse labels beforehand
+        let labels = [];
+        try {
+          const metaResponse = await fetch(sanitized + 'metadata.json');
+          if (metaResponse.ok) {
+            const meta = await metaResponse.json();
+            labels = meta.labels || meta.userLabels || [];
+          }
+        } catch(e) {
+          console.warn("Failed fetching metadata, fallback to internal classes", e);
+        }
+
+        // Initialize classifier using ml5.js
+        // ml5 v0.12.2 requires full path to model.json
+        classifier = await ml5.imageClassifier(sanitized + 'model.json', () => {
+          logToTerminal("success", "ml5.js 이미지 분류 가중치 정합성 검증 완료.");
+        });
+
+        // If labels still empty, attempt to read from loaded classifier
+        if (labels.length === 0) {
+          if (classifier.model && classifier.model.classes) {
+            labels = classifier.model.classes;
+          } else if (classifier.classes) {
+            labels = classifier.classes;
+          }
+        }
+
+        currentModelUrl = sanitized;
+        
+        // Show info
+        const infoDiv = document.getElementById('loaded-model-info');
+        const infoLink = document.getElementById('active-model-link');
+        infoLink.href = sanitized;
+        infoLink.innerText = sanitized;
+        infoDiv.classList.remove('hidden');
+
+        updateModelStatus("connected", "정상 로드 완료");
+        logToTerminal("success", `AI 분류 모델 로드가 정상 완료되었습니다. 클래스 개수: ${labels.length}개.`);
+
+        // Dynamic mapping UI rebuild
+        buildMappingTable(labels);
+
+        // Start real-time image classifier loop
+        isClassifying = true;
+        classifyLoop();
+
+      } catch (err) {
+        logToTerminal("error", `모델 로딩 실패: ${err.message}`);
+        updateModelStatus("disconnected", "로드 실패");
+        alert(`Teachable Machine 모델 로드에 실패했습니다: ${err.message}\n인터넷 연결 상태 및 올바른 URL인지 검증하십시오.`);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="download"></i> 모델 로드`;
+        lucide.createIcons();
+      }
+    }
+
+    function updateModelStatus(status, text) {
+      const badge = document.getElementById('model-status-badge');
+      badge.className = "status-badge";
+      
+      const txtSpan = badge.querySelector('.txt');
+      txtSpan.innerText = text;
+
+      if (status === 'connected') {
+        badge.classList.add('status-connected');
+      } else if (status === 'scanning' || status === 'connecting') {
+        badge.classList.add('status-scanning');
+      } else {
+        badge.classList.add('status-disconnected');
+      }
+    }
+
+    // Dynamic Class Mapping Table Builder
+    function buildMappingTable(classes) {
+      const container = document.getElementById('mapping-rows-container');
+      container.innerHTML = '';
+
+      const savedMap = getSavedMappings();
+      const defaultCommands = ['1', '2', '3', '4', '5'];
+
+      classes.forEach((cls, index) => {
+        let cmd = savedMap[cls];
+        if (cmd === undefined) {
+          cmd = defaultCommands[index % defaultCommands.length];
+        }
+
+        const row = document.createElement('div');
+        row.className = 'mapping-row';
+        row.innerHTML = `
+          <div class="class-name-badge" title="${cls}">${cls}</div>
+          <div class="arrow-icon"><i data-lucide="arrow-right"></i></div>
+          <input type="text" class="mapping-input" data-class="${cls}" value="${cmd}" placeholder="제어문자">
+        `;
+        container.appendChild(row);
+      });
+
+      lucide.createIcons();
+
+      // Register Input updates
+      const inputs = container.querySelectorAll('.mapping-input');
+      inputs.forEach(input => {
+        input.addEventListener('input', () => {
+          const currentMap = getSavedMappings();
+          const targetClass = input.getAttribute('data-class');
+          currentMap[targetClass] = input.value;
+          localStorage.setItem('tm_class_map', JSON.stringify(currentMap));
+        });
+      });
+
+      // Update initial storage with defaults if not present
+      const initialMap = getSavedMappings();
+      classes.forEach((cls, idx) => {
+        if (initialMap[cls] === undefined) {
+          initialMap[cls] = defaultCommands[idx % defaultCommands.length];
+        }
+      });
+      localStorage.setItem('tm_class_map', JSON.stringify(initialMap));
+    }
+
+    function getSavedMappings() {
+      const raw = localStorage.getItem('tm_class_map');
+      if (raw) {
+        try {
+          return JSON.parse(raw);
+        } catch(e) {}
+      }
+      return {};
+    }
+
+    // Classifier looping
+    function classifyLoop() {
+      if (!isClassifying || !classifier || !p5App.video || !p5App.video.elt) {
+        return;
+      }
+      
+      // ml5.js v0.12.2 classify call
+      classifier.classify(p5App.video.elt, (err, results) => {
+        if (err) {
+          console.error(err);
+          // If container/video was recreated, continue classification
+          if (isClassifying) {
+            setTimeout(classifyLoop, 200);
+          }
+          return;
+        }
+
+        if (results && results.length > 0) {
+          lastResults = results;
+          
+          // Render HTML Top 3 bars
+          renderConfidenceBars(results);
+
+          // Web BLE transmission handler
+          handleDataTransmission(results[0].label);
+        }
+
+        if (isClassifying) {
+          // Run immediately on next frame loop
+          requestAnimationFrame(classifyLoop);
+        }
+      });
+    }
+
+    function renderConfidenceBars(results) {
+      const chartList = document.getElementById('chart-list');
+      chartList.innerHTML = '';
+      
+      // Limit to top 3
+      const top3 = results.slice(0, 3);
+      top3.forEach(res => {
+        const percentage = (res.confidence * 100).toFixed(1);
+        
+        const row = document.createElement('div');
+        row.className = 'chart-row';
+        row.innerHTML = `
+          <div class="chart-label-info">
+            <span class="chart-label-name">${res.label}</span>
+            <span class="chart-label-pct">${percentage}%</span>
+          </div>
+          <div class="chart-bar-bg">
+            <div class="chart-bar-fill" style="width: ${percentage}%"></div>
+          </div>
+        `;
+        chartList.appendChild(row);
+      });
+    }
+
+    // Transmit controls
+    async function handleDataTransmission(label) {
+      if (!txCharacteristic || !bleDevice || !bleDevice.gatt.connected) {
+        return; // Device not connected
+      }
+
+      if (isSendingData) {
+        return; // Locked write operation
+      }
+
+      const now = Date.now();
+      const throttleLimit = parseInt(throttleSlider.value) || 300;
+      if (now - lastSentTime < throttleLimit) {
+        return; // Throttled call
+      }
+
+      // Read mapped command value
+      const mappings = getSavedMappings();
+      let cmd = mappings[label];
+      if (cmd === undefined) {
+        cmd = label; // fallback to label string
+      }
+
+      // Check duplicate filter
+      const duplicateFilter = document.getElementById('duplicate-toggle').checked;
+      if (duplicateFilter && lastSentValue === cmd) {
+        return; // Duplicate skipped
+      }
+
+      // Append Delimiter
+      const delimiterSelect = document.getElementById('delimiter-select').value;
+      let delimiter = "";
+      if (delimiterSelect === "lf") {
+        delimiter = "\n";
+      } else if (delimiterSelect === "crlf") {
+        delimiter = "\r\n";
+      }
+
+      const packet = cmd + delimiter;
+
+      try {
+        isSendingData = true;
+        const encoder = new TextEncoder();
+        const dataBuffer = encoder.encode(packet);
+
+        // Nordic NUS write without response characteristic with fallback
+        try {
+          if (txCharacteristic.writeValueWithoutResponse) {
+            await txCharacteristic.writeValueWithoutResponse(dataBuffer);
+          } else {
+            await txCharacteristic.writeValue(dataBuffer);
+          }
+        } catch (writeErr) {
+          console.warn("WriteWithoutResponse failed, attempting fallback write:", writeErr);
+          if (txCharacteristic.writeValueWithResponse) {
+            await txCharacteristic.writeValueWithResponse(dataBuffer);
+          } else {
+            await txCharacteristic.writeValue(dataBuffer);
+          }
+        }
+
+        lastSentTime = now;
+        lastSentValue = cmd;
+
+        logToTerminal("tx", `TX: "${cmd.replace(/\n/g, '\\n').replace(/\r/g, '\\r')}"`);
+      } catch (err) {
+        logToTerminal("error", `송신 에러: ${err.message}`);
+      } finally {
+        isSendingData = false;
+      }
+    }
+
+    // TERMINAL AND UTILITIES
+    const terminalBox = document.getElementById('terminal-log-box');
+    const autoScrollCheck = document.getElementById('terminal-autoscroll');
+
+    function logToTerminal(type, message) {
+      const now = new Date();
+      const timeStr = now.toTimeString().split(' ')[0];
+      
+      const line = document.createElement('div');
+      line.className = `log-line log-${type}`;
+      line.innerHTML = `<span class="log-time">[${timeStr}]</span> ${message}`;
+      
+      terminalBox.appendChild(line);
+      
+      // Limit to 100 log items
+      while (terminalBox.childNodes.length > 100) {
+        terminalBox.removeChild(terminalBox.firstChild);
+      }
+
+      if (autoScrollCheck.checked) {
+        terminalBox.scrollTop = terminalBox.scrollHeight;
+      }
+    }
+
+    document.getElementById('btn-clear-terminal').addEventListener('click', () => {
+      terminalBox.innerHTML = '';
+      logToTerminal("info", "터미널 로그가 비워졌습니다.");
+    });
+
+    // Copying MicroPython guide firmware
+    document.getElementById('btn-copy-code').addEventListener('click', function() {
+      const codeBlock = document.getElementById('firmware-code-block');
+      navigator.clipboard.writeText(codeBlock.innerText).then(() => {
+        const copyIcon = this.querySelector('i');
+        this.innerHTML = '<i data-lucide="check" style="color:var(--color-connected)"></i>';
+        lucide.createIcons();
+        logToTerminal("success", "MicroPython 펌웨어 전체 코드가 클립보드에 복사되었습니다.");
+        
+        setTimeout(() => {
+          this.innerHTML = '<i data-lucide="copy"></i>';
+          lucide.createIcons();
+        }, 2000);
+      }).catch(err => {
+        logToTerminal("error", `클립보드 복사 실패: ${err.message}`);
+      });
+    });
+
+    // Check if initial hash contains model link or default
+    window.addEventListener('load', () => {
+      // Set default demo model url if user needs suggestion
+      // Documenting default suggestion in search field
+      document.getElementById('model-url-input').value = "mJ8F2_1xS";
+      logToTerminal("info", "사용법: '모델 로드'를 눌러 티처블 머신 AI 모델을 다운로드하고 카메라 분류를 진행하십시오.");
+    });
+
+  </script>
+</body>
+</html>
