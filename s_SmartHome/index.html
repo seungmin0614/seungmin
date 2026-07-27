@@ -140,16 +140,7 @@
 
         /* Soft Badge Styling */
         .status-badge {
-            padding: 6px 12px;
-            border-radius: 9999px;
-            font-size: 13px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-            box-shadow: var(--shadow-sm);
+            display: none !important;
         }
 
         .status-dot {
@@ -978,7 +969,7 @@
                 <span>제작자: park</span>
             </div>
             <div class="header-right">
-                <div id="connection-status" class="status-badge status-disconnected">
+                <div id="connection-status" class="status-badge status-disconnected" style="display: none;">
                     <span class="status-dot"></span>
                     <span id="status-text">연결 대기</span>
                 </div>

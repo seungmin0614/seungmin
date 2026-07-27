@@ -157,7 +157,7 @@ Stitch에서 디자인 스타일(CSS) 코드를 가져오는 방법은 대표적
    
    # 5. 내 로컬 저장소와 방금 만든 원격 GitHub 저장소 연결
    # (아래 주소의 [GitHub-계정명] 부분을 실제 본인 아이디로 변경하세요)
-   git remote add origin https://github.com/seungmin0614/seungmin.git
+   git remote add origin https://github.com/seungmin0614/elder.git
    
    # 6. 원격 저장소의 main 브랜치로 코드 업로드
    git push -u origin main
